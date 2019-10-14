@@ -17,16 +17,33 @@ maintainer:          414owen@gmail.com
 category:            Graphics
 extra-source-files:  CHANGELOG.md
 
-executable context-free-art
-  main-is:             Main.hs
-  other-modules:       Grammar
+executable tests
+  main-is:             Tests.hs
+  other-modules:       Interpreter
                        , Geometry
-  -- other-extensions:
+                       , Grammar
+                       , Util
   build-depends:       base ^>= 4.12.0.0
                        , blaze-svg ^>= 0.3.6
                        , random ^>= 1.1
                        , blaze-markup
                        , extra ^>= 1.6
                        , bifunctors ^>= 5.5
-  -- hs-source-dirs:
+                       , text-show ^>= 3.8
+                       , text ^>= 1.2
+                       , HUnit ^>= 1.6
+  default-language:    Haskell2010
+
+library
+  exposed-modules:     Interpreter, Grammar
+  other-modules:       Geometry
+                       , Util
+  build-depends:       base ^>= 4.12.0.0
+                       , blaze-svg ^>= 0.3.6
+                       , random ^>= 1.1
+                       , blaze-markup
+                       , extra ^>= 1.6
+                       , bifunctors ^>= 5.5
+                       , text-show ^>= 3.8
+                       , text ^>= 1.2
   default-language:    Haskell2010

@@ -19,4 +19,3 @@ data Symbol
 
   -- points and polys start at rel(0, 0)
   | Poly [Vec]
-  | Path [Vec]

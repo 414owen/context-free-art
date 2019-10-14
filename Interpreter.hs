@@ -2,16 +2,18 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE FlexibleInstances #-}
 
-module Main where
+module Interpreter ( interpret ) where
 
+import TextShow
 import Data.List
-import Data.List.NonEmpty
+import Data.List.NonEmpty hiding (reverse)
 import Data.Tuple.Extra
 import Data.Functor
 import Data.Function
 import Data.Maybe
 import System.Random
 import Text.Blaze
+import qualified Data.Text as T
 import Text.Blaze.Svg11 ((!))
 import qualified Text.Blaze.Svg11 as S
 import qualified Text.Blaze.Svg11.Attributes as A
@@ -19,6 +21,7 @@ import Text.Blaze.Svg.Renderer.String (renderSvg)
 
 import Geometry
 import Grammar
+import Util
 
 type Bound = (Float, Float, Float, Float)
 type BoundRes = Maybe Bound
@@ -30,12 +33,34 @@ data State
     , scale :: Float
     }
 
-emptyState = State { position = (0.0, 0.0), scale = 1.0 }
-
-notimpl = error "not implemented"
+emptyBound = Nothing
+emptyRes = (emptyBound, mempty)
+zeroPt = (0, 0)
+emptyState = State { position = zeroPt, scale = 1.0 }
 
 zero :: AttributeValue
 zero = toValue (0 :: Int)
+
+combineBounds :: [BoundRes] -> BoundRes
+combineBounds boundsM =
+  let bounds = catMaybes boundsM
+      (x1, y1, x2, y2) = unzip4 bounds
+  in if null bounds then Nothing else
+    Just (minimum x1, minimum y1, maximum x2, maximum y2)
+
+-- pos, path
+poly :: State -> [Vec] -> Res
+poly State{ position=pos, scale=scale } pts = 
+  let newPts = scaleVec scale <$> pos : pts
+      (x, y) = pos
+      (_, b) = foldl nextRes (pos, Just (x, y, x, y)) newPts
+  in  (b, S.path ! A.d (toValue $ toPath newPts))
+    where
+      nextRes ((x, y), b) (dx, dy)
+        = let (i, j) = (x + dx, y + dy)
+          in ( (i, j)
+             , combineBounds [b, Just (i, j, i, j)]
+             )
 
 -- rad, pos
 circle :: Float -> Vec -> Res
@@ -53,17 +78,12 @@ groupModifier = \case
     _        -> Nothing
 
 modifyState :: State -> Modifier -> State
-modifyState s (Move pos) = s { position = addVecs (position s) pos }
+modifyState s@State{ position = pos, scale = scale } = \case
+  Move p -> s{ position = addVecs pos (scaleVec scale p) }
+  Scale n  -> s{ scale = scale * n }
 
 in100 :: Int -> Int
 in100 = (`mod` 100) . abs
-
-combineBounds :: [BoundRes] -> BoundRes
-combineBounds boundsM =
-  let bounds = catMaybes boundsM
-      (x1, y1, x2, y2) = unzip4 bounds
-  in if null bounds then Nothing else
-    Just (minimum x1, minimum y1, maximum x2, maximum y2)
 
 foldMods :: State -> [Modifier] -> (State, S.Svg -> S.Svg)
 foldMods state mods =
@@ -74,9 +94,6 @@ foldMods state mods =
         then id
         else foldl (<&>) S.g groupMods
   in  (newState, maybeLayer)
-
-emptyBound = Nothing
-emptyRes = (emptyBound, mempty)
 
 joinRes :: Res -> Res -> Res
 joinRes (b1, s1) (b2, s2) = (combineBounds [b1, b2], s1 >> s2)
@@ -90,18 +107,17 @@ interpretNonTerminal state prod@(prob, mods, syms)
     >>= \case
       True ->
         let (newState, layerMod) = foldMods state mods
-        in second layerMod <$> sequenceRes (interpret newState <$> syms)
+        in second layerMod <$> sequenceRes (interpretSymbol newState <$> syms)
       False -> pure emptyRes
 
-interpret :: State -> Symbol -> IO Res
-interpret state@State{ position = pos, scale = scale }
+interpretSymbol :: State -> Symbol -> IO Res
+interpretSymbol state@State{ position = pos, scale = scale }
   = \case
     NonTerminal (x :| []) -> interpretNonTerminal state x
     NonTerminal (x :| (y: ys)) ->
       sequenceRes (interpretNonTerminal state <$> (x :| y : ys))
     Circle r -> pure $ circle (r * scale) pos
-    Poly _ -> pure (emptyBound, notimpl)
-    Path _ -> pure (emptyBound, notimpl)
+    Poly pts -> pure $ poly state pts
 
 fourTupLst :: (a, a, a, a) -> [a]
 fourTupLst (a, b, c, d) = [a, b, c, d]
@@ -115,10 +131,9 @@ toSVG bound
 boundsToViewBox :: Bound -> Bound
 boundsToViewBox (x1, y1, x2, y2) = (x1, y1, x2 - x1, y2 - y1)
 
-testGrammar :: Symbol
-testGrammar = NonTerminal ((85, [Move (2, 0)], testGrammar :| [Circle 1]) :| [])
-
-main :: IO ()
-main = do
-  (Just bounds, svg) <- interpret emptyState testGrammar
-  putStrLn $ renderSvg $ toSVG (boundsToViewBox bounds) svg
+interpret :: Symbol -> IO S.Svg
+interpret sym =
+  finalise <$> interpretSymbol emptyState sym
+    where
+      finalise :: Res -> S.Svg
+      finalise (Just bounds, svg) = toSVG (boundsToViewBox bounds) svg

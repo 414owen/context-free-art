@@ -14,3 +14,6 @@ reflectVec = both negate
 
 subVecs :: Vec -> Vec -> Vec
 subVecs v1 v2 = addVecs v1 $ reflectVec v2
+
+scaleVec :: Float -> Vec -> Vec
+scaleVec n = both (* n)
