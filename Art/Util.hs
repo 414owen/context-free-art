@@ -1,11 +1,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Util where
+module Art.Util where
 
 import Data.Tuple.Extra
 import qualified Data.Text as T
 import TextShow
-import Geometry
+import Art.Geometry
 
 tupLst :: (a, a) -> [a]
 tupLst (a, b) = [a, b]

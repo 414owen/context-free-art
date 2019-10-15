@@ -1,11 +1,10 @@
-module Grammar where
+module Art.Grammar where
 
 import Data.List.NonEmpty
-import Geometry
+import Art.Geometry
 
 data Modifier
   = Color String
-  | Stroke Float
   | Scale Float
   | Move Vec
 

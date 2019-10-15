@@ -2,7 +2,7 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE FlexibleInstances #-}
 
-module Interpreter ( interpret ) where
+module Art.Interpreter ( interpret ) where
 
 import TextShow
 import Data.List
@@ -19,9 +19,9 @@ import qualified Text.Blaze.Svg11 as S
 import qualified Text.Blaze.Svg11.Attributes as A
 import Text.Blaze.Svg.Renderer.String (renderSvg)
 
-import Geometry
-import Grammar
-import Util
+import Art.Geometry
+import Art.Grammar
+import Art.Util
 
 type Bound = (Float, Float, Float, Float)
 type BoundRes = Maybe Bound
@@ -73,14 +73,14 @@ circle rad (x, y)
 
 groupModifier :: Modifier -> Maybe (S.Svg -> S.Svg)
 groupModifier = \case
-    Color  c -> Just (! A.color  (toValue c))
-    Stroke n -> Just (! A.stroke (toValue n))
+    Color  c -> Just (! A.fill (toValue c))
     _        -> Nothing
 
 modifyState :: State -> Modifier -> State
 modifyState s@State{ position = pos, scale = scale } = \case
-  Move p -> s{ position = addVecs pos (scaleVec scale p) }
-  Scale n  -> s{ scale = scale * n }
+  Move p  -> s{ position = addVecs pos (scaleVec scale p) }
+  Scale n -> s{ scale = scale * n }
+  _       -> s
 
 in100 :: Int -> Int
 in100 = (`mod` 100) . abs

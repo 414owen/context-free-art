@@ -10,10 +10,10 @@ import qualified Text.Blaze.Svg11 as S
 import qualified Text.Blaze.Svg11.Attributes as A
 import Text.Blaze.Svg.Renderer.Text (renderSvg)
 
-import Grammar
-import Geometry
-import Interpreter
-import Util
+import Art.Grammar
+import Art.Geometry
+import Art.Interpreter
+import Art.Util
 
 toSvg :: [Float] -> S.Svg -> S.Svg
 toSvg bound = S.docTypeSvg
@@ -108,6 +108,12 @@ rendersPolyScaled2
     where
       a = NonTerminal $ (100, [Scale 2], Poly [(-2, 2), (1, -2)] :| []) :| []
 
+fill
+  = testRender "another scaled poly" a [-1, -1, 2, 2]
+    $ S.g ! A.fill "green" $ circle 1 (0, 0)
+    where
+      a = NonTerminal $ (100, [Color "green"], Circle 1 :| []) :| []
+
 svgToText = TestCase $ do
   res <- renderSvg <$> interpret (Circle 1)
   assertEqual "svg text generation" res $
@@ -132,6 +138,7 @@ tests = TestList
   , rendersPolyTranslated
   , rendersPolyScaled
   , rendersPolyScaled2
+  , fill
   ]
 
 main = runTestTT tests

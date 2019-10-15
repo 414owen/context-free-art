@@ -1,4 +1,4 @@
-module Geometry where
+module Art.Geometry where
 
 import Control.Arrow
 import Data.Tuple.Extra

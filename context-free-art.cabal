@@ -5,8 +5,41 @@ cabal-version:       2.4
 
 name:                context-free-art
 version:             0.1.0.0
-synopsis:            Monadic Haskell DSL for describing context-free artwork grammars
--- description:
+synopsis:            Generate art from context-free grammars
+description:
+    .
+    Create art via context free grammar production rules.
+    Includes an SVG backend.
+    .
+    == Context free grammar primer
+    .
+    Context free grammars consist of a set of terminal symbols, a set of
+    non-terminal symbols, and production rules that map non-terminals to
+    other symbols.
+    .
+    With a context-free grammar, we can generate strings of terminals that
+    conform to the specified language.
+    .
+    Our language will describe graphics.
+    .
+    == Example
+    .
+    > import Art.ContextFree
+    > import Data.List.NonEmpty
+    >
+    > -- let's define a Production rule
+    > a = Circle 1
+    >
+    > -- this will produce an IO Svg from the blaze-svg package
+    > -- to turn it into a string we can use one of the `blaze-svg` renderers
+    > graphic1 = interpret $ Circle 1
+    >
+    > -- let's create a non-terminal, at every layer,
+    > -- this will have an 85% chance of rendering another circle
+    > circles = NonTerminal $ (85, [Move (2, 0)], Circle 1 :| [circles]) :| []
+    .
+    That's about it. Go forth and create.
+
 homepage:            https://github.com/414owen/context-free-art
 -- bug-reports:
 license:             BSD-3-Clause
@@ -19,10 +52,10 @@ extra-source-files:  CHANGELOG.md
 
 executable tests
   main-is:             Tests.hs
-  other-modules:       Interpreter
-                       , Geometry
-                       , Grammar
-                       , Util
+  other-modules:       Art.Interpreter
+                       , Art.Geometry
+                       , Art.Grammar
+                       , Art.Util
   build-depends:       base ^>= 4.12.0.0
                        , blaze-svg ^>= 0.3.6
                        , random ^>= 1.1
@@ -35,9 +68,11 @@ executable tests
   default-language:    Haskell2010
 
 library
-  exposed-modules:     Interpreter, Grammar
-  other-modules:       Geometry
-                       , Util
+  exposed-modules:     Art.ContextFree
+  other-modules:       Art.Geometry
+                       , Art.Util
+                       , Art.Interpreter
+                       , Art.Grammar
   build-depends:       base ^>= 4.12.0.0
                        , blaze-svg ^>= 0.3.6
                        , random ^>= 1.1
