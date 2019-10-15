@@ -37,8 +37,6 @@ description:
     > -- let's create a non-terminal, at every layer,
     > -- this will have an 85% chance of rendering another circle
     > circles = NonTerminal $ (85, [Move (2, 0)], Circle 1 :| [circles]) :| []
-    .
-    That's about it. Go forth and create.
 
 homepage:            https://github.com/414owen/context-free-art
 -- bug-reports:
