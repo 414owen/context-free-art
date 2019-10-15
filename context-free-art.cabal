@@ -54,7 +54,7 @@ executable tests
                        , Art.Geometry
                        , Art.Grammar
                        , Art.Util
-  build-depends:       base ^>= 4.12.0.0
+  build-depends:       base >= 4.12 && < 4.14
                        , blaze-svg ^>= 0.3.6
                        , random ^>= 1.1
                        , blaze-markup
@@ -71,7 +71,7 @@ library
                        , Art.Util
                        , Art.Interpreter
                        , Art.Grammar
-  build-depends:       base ^>= 4.12.0.0
+  build-depends:       base >= 4.12 && < 4.14
                        , blaze-svg ^>= 0.3.6
                        , random ^>= 1.1
                        , blaze-markup
