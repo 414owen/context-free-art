@@ -4,6 +4,7 @@ import Control.Arrow
 import Data.Tuple.Extra
 import Data.Biapplicative
 
+-- | A vector in 2d euclidian space.
 type Vec = (Float, Float)
 
 addVecs :: Vec -> Vec -> Vec
