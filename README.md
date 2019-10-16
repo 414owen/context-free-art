@@ -29,5 +29,7 @@ graphic1 = interpret $ Circle 1
 
 -- let's create a non-terminal, at every layer,
 -- this will have an 85% chance of rendering another circle
-circles = NonTerminal $ (85, [Move (2, 0)], Circle 1 :| [circles]) :| []
+a = Mod [Move (2, 0)] b
+b = NonTerminal $ (85, c) :| []
+c = NonTerminal $ (100, Circle 1) :| [(100, a)]
 ```
