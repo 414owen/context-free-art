@@ -54,15 +54,15 @@ executable tests
                        , Art.Geometry
                        , Art.Grammar
                        , Art.Util
-  build-depends:       base >= 4.12 && < 4.14
-                       , blaze-svg ^>= 0.3.6
-                       , random ^>= 1.1
+  build-depends:       base >= 4.12 && < 5
+                       , blaze-svg >= 0.3.6
+                       , random >= 1.1
                        , blaze-markup
-                       , extra ^>= 1.6
-                       , bifunctors ^>= 5.5
-                       , text-show ^>= 3.8
-                       , text ^>= 1.2
-                       , HUnit ^>= 1.6
+                       , extra >= 1.6
+                       , bifunctors >= 5.5
+                       , text-show >= 3.8
+                       , text >= 1.2
+                       , HUnit >= 1.6
   default-language:    Haskell2010
 
 library
@@ -71,12 +71,12 @@ library
                        , Art.Util
                        , Art.Interpreter
                        , Art.Grammar
-  build-depends:       base >= 4.12 && < 4.14
-                       , blaze-svg ^>= 0.3.6
-                       , random ^>= 1.1
+  build-depends:       base >= 4.12 && < 5
+                       , blaze-svg >= 0.3.6
+                       , random >= 1.1
                        , blaze-markup
-                       , extra ^>= 1.6
-                       , bifunctors ^>= 5.5
-                       , text-show ^>= 3.8
-                       , text ^>= 1.2
+                       , extra >= 1.6
+                       , bifunctors >= 5.5
+                       , text-show >= 3.8
+                       , text >= 1.2
   default-language:    Haskell2010
