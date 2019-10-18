@@ -7,7 +7,6 @@ module Art.Interpreter ( interpret ) where
 import TextShow
 import Data.List
 import Data.List.NonEmpty hiding (reverse)
-import Data.Tuple.Extra
 import Data.Functor
 import Data.Function
 import Data.Maybe
@@ -108,6 +107,9 @@ interpretNonTerminal state prod@(prob, sym)
       True -> interpretSymbol state sym
       False -> pure emptyRes
 
+second :: (a -> b) -> (c, a) -> (c, b)
+second f (a, b) = (a, f b)
+
 interpretSymbol :: State -> Symbol -> IO Res
 interpretSymbol state@State{ position = pos, scale = scale }
   = \case
@@ -140,4 +142,4 @@ interpret sym =
   finalise <$> interpretSymbol emptyState sym
     where
       finalise :: Res -> S.Svg
-      finalise (Just bounds, svg) = toSVG (boundsToViewBox bounds) svg
+      finalise (bounds, svg) = toSVG (boundsToViewBox (fromMaybe (0, 0, 0, 0) bounds)) svg

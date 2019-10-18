@@ -19,5 +19,4 @@ module Art.ContextFree
 
 import Art.Grammar
 import Art.Interpreter
-import Art.Util
 import Art.Geometry

@@ -3,7 +3,6 @@
 import Data.List
 import Data.List.NonEmpty
 import Test.HUnit hiding (path)
-import Data.Tuple.Extra
 import Text.Blaze
 import Text.Blaze.Svg11 ((!))
 import qualified Text.Blaze.Svg11 as S

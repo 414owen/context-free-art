@@ -4,12 +4,11 @@ cabal-version:       2.4
 -- http://haskell.org/cabal/users-guide/
 
 name:                context-free-art
-version:             0.1.0.0
+version:             0.2.0.0
 synopsis:            Generate art from context-free grammars
 description:
     .
     Create art via context free grammar production rules.
-    Includes an SVG backend.
     .
     == Context free grammar primer
     .
@@ -61,7 +60,6 @@ executable tests
                        , blaze-svg ^>= 0.3.6
                        , random ^>= 1.1
                        , blaze-markup
-                       , extra ^>= 1.6
                        , bifunctors ^>= 5.5
                        , text-show ^>= 3.8
                        , text ^>= 1.2
@@ -78,7 +76,6 @@ library
                        , blaze-svg ^>= 0.3.6
                        , random ^>= 1.1
                        , blaze-markup
-                       , extra ^>= 1.6
                        , bifunctors ^>= 5.5
                        , text-show ^>= 3.8
                        , text ^>= 1.2

@@ -2,7 +2,6 @@
 
 module Art.Util where
 
-import Data.Tuple.Extra
 import qualified Data.Text as T
 import TextShow
 import Art.Geometry
