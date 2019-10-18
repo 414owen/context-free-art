@@ -7,7 +7,6 @@ module Art.Interpreter ( interpret ) where
 import TextShow
 import Data.List
 import Data.List.NonEmpty hiding (reverse)
-import Data.Tuple.Extra
 import Data.Functor
 import Data.Function
 import Data.Maybe
@@ -102,13 +101,14 @@ sequenceRes :: (Monad m, Traversable t) => t (m Res) -> m Res
 sequenceRes rs = foldl joinRes emptyRes <$> sequence rs
 
 interpretNonTerminal :: State -> Production -> IO Res
-interpretNonTerminal state prod@(prob, mods, syms)
-  = (< prob) . in100 <$> randomIO
+interpretNonTerminal state prod@(prob, sym)
+  = (< prob) . fromIntegral . in100 <$> randomIO
     >>= \case
-      True ->
-        let (newState, layerMod) = foldMods state mods
-        in second layerMod <$> sequenceRes (interpretSymbol newState <$> syms)
+      True -> interpretSymbol state sym
       False -> pure emptyRes
+
+second :: (a -> b) -> (c, a) -> (c, b)
+second f (a, b) = (a, f b)
 
 interpretSymbol :: State -> Symbol -> IO Res
 interpretSymbol state@State{ position = pos, scale = scale }
@@ -118,6 +118,9 @@ interpretSymbol state@State{ position = pos, scale = scale }
       sequenceRes (interpretNonTerminal state <$> (x :| y : ys))
     Circle r -> pure $ circle (r * scale) pos
     Poly pts -> pure $ poly state pts
+    Mod mods sym ->
+        let (newState, layerMod) = foldMods state mods
+        in second layerMod <$> interpretSymbol newState sym
 
 fourTupLst :: (a, a, a, a) -> [a]
 fourTupLst (a, b, c, d) = [a, b, c, d]
@@ -131,9 +134,12 @@ toSVG bound
 boundsToViewBox :: Bound -> Bound
 boundsToViewBox (x1, y1, x2, y2) = (x1, y1, x2 - x1, y2 - y1)
 
+-- | Create a drawing from a grammar.
+--   In order to get a string representation, you'll need to use one of
+--   blaze-svg's render functions, for example 'renderSvg'.
 interpret :: Symbol -> IO S.Svg
 interpret sym =
   finalise <$> interpretSymbol emptyState sym
     where
       finalise :: Res -> S.Svg
-      finalise (Just bounds, svg) = toSVG (boundsToViewBox bounds) svg
+      finalise (bounds, svg) = toSVG (boundsToViewBox (fromMaybe (0, 0, 0, 0) bounds)) svg

@@ -1,10 +1,13 @@
 module Art.Geometry where
 
 import Control.Arrow
-import Data.Tuple.Extra
 import Data.Biapplicative
 
+-- | A vector in 2d euclidian space.
 type Vec = (Float, Float)
+
+both :: (a -> b) -> (a, a) -> (b, b)
+both f (a, b) = (f a, f b)
 
 addVecs :: Vec -> Vec -> Vec
 addVecs = biliftA2 (+) (+)

@@ -3,7 +3,6 @@
 import Data.List
 import Data.List.NonEmpty
 import Test.HUnit hiding (path)
-import Data.Tuple.Extra
 import Text.Blaze
 import Text.Blaze.Svg11 ((!))
 import qualified Text.Blaze.Svg11 as S
@@ -51,38 +50,39 @@ translatedCircle
   = testRender "translated circle" a [5, 5, 2, 2]
       $ circle 1 (6, 6)
     where
-      a = NonTerminal $ (100, [Move (6, 6)], b :| []) :| []
+      a = Mod [Move (6, 6)] b
       b = Circle 1
 
 scaledCircle
   = testRender "scaled circle" a [-0.5, -0.5, 1, 1]
       $ circle 0.5 (0, 0)
     where
-      a = NonTerminal $ (100, [Scale 0.5], b :| []) :| []
+      a = Mod [Scale 0.5] b
       b = Circle 1
 
 translatedScaledCircle
   = testRender "translated scaled circle" a [10, 10, 4, 4]
       $ circle 2 (12, 12)
     where
-      a = NonTerminal $ (100, [Scale 2, Move (6, 6)], b :| []) :| []
+      a = Mod [Scale 2, Move (6, 6)] b
       b = Circle 1
 
 scaledTranslatedCircle
   = testRender "scaled translated circle" a [4, 4, 4, 4]
       $ circle 2 (6, 6)
     where
-      a = NonTerminal $ (100, [Move (6, 6), Scale 2], b :| []) :| []
+      a = Mod [Move (6, 6), Scale 2] b
       b = Circle 1
 
 multipleScaledTranslatedCircles
   = testRender "multiple symbols under one non-terminal" a [10, 10, 20, 20]
       $ circle 2 (12, 12) >> circle 2 (28, 28)
     where
-      a = NonTerminal $ (100, [Scale 2, Move (6, 6)], b :| [c]) :| []
+      a = Mod [Scale 2, Move (6, 6)] e
       b = Circle 1
-      c = NonTerminal $ (100, [Scale 2, Move (4, 4)], d :| []) :| []
+      c = Mod [Scale 2, Move (4, 4)] d
       d = Circle 0.5
+      e = NonTerminal $ (100, b) :| [(100, c)]
 
 rendersPoly
   = testRender "poly" a [0, 0, 2, 1]
@@ -94,25 +94,29 @@ rendersPolyTranslated
   = testRender "translated poly" a [1, 1, 3, 2]
     $ path [(1, 1), (1, 1), (1, 0)]
     where
-      a = NonTerminal $ (100, [Move (1, 1)], Poly [(1, 1), (1, 0)] :| []) :| []
+      a = Mod [Move (1, 1)] b
+      b = Poly [(1, 1), (1, 0)]
 
 rendersPolyScaled
   = testRender "scaled poly" a [0, -3, 6, 6]
     $ path [(0, 0), (3, 3), (3, -6)]
     where
-      a = NonTerminal $ (100, [Scale 3], Poly [(1, 1), (1, -2)] :| []) :| []
+      a = Mod [Scale 3] b
+      b = Poly [(1, 1), (1, -2)]
 
 rendersPolyScaled2
   = testRender "another scaled poly" a [-4, 0, 4, 4]
     $ path [(0, 0), (-4, 4), (2, -4)]
     where
-      a = NonTerminal $ (100, [Scale 2], Poly [(-2, 2), (1, -2)] :| []) :| []
+      a = Mod [Scale 2] b
+      b = Poly [(-2, 2), (1, -2)]
 
 fill
   = testRender "another scaled poly" a [-1, -1, 2, 2]
     $ S.g ! A.fill "green" $ circle 1 (0, 0)
     where
-      a = NonTerminal $ (100, [Color "green"], Circle 1 :| []) :| []
+      a = Mod [Color "green"] b
+      b = Circle 1
 
 svgToText = TestCase $ do
   res <- renderSvg <$> interpret (Circle 1)
