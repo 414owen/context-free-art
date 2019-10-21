@@ -27,9 +27,8 @@ a = Circle 1
 -- to turn it into a string we can use one of the `blaze-svg` renderers
 graphic1 = interpret $ Circle 1
 
--- let's create a non-terminal, at every layer,
--- this will have an 85% chance of rendering another circle
-a = Mod [Move (2, 0)] b
-b = NonTerminal $ (85, c) :| []
-c = NonTerminal $ (100, Circle 1) :| [(100, a)]
+-- let's create a non-terminal, 'a', which renders a terminal, 'Circle 1'
+-- and has an 85% chance of rendering another circle, placed to its right
+a = NonTerminal $ (100, Circle 1) :| [(85, b)]
+b = Mod [Move (2, 0)] a
 ```
