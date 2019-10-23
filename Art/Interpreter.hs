@@ -13,6 +13,7 @@ import Data.Maybe
 import System.Random
 import Text.Blaze
 import qualified Data.Text as T
+import qualified TextShow as T
 import Text.Blaze.Svg11 ((!))
 import qualified Text.Blaze.Svg11 as S
 import qualified Text.Blaze.Svg11.Attributes as A
@@ -70,9 +71,11 @@ circle rad (x, y)
       ! A.cx (toValue x)
       ! A.cy (toValue y))
 
-groupModifier :: Modifier -> Maybe (S.Svg -> S.Svg)
-groupModifier = \case
+groupModifier :: State -> Modifier -> Maybe (S.Svg -> S.Svg)
+groupModifier State { position = (x, y) } = \case
     Color  c -> Just (! A.fill (toValue c))
+    Rotate n -> Just (! A.transform
+      (toValue $ "rotate(" <> T.unwords (T.showt <$> [n, x, y]) <> ")"))
     _        -> Nothing
 
 modifyState :: State -> Modifier -> State
@@ -86,13 +89,16 @@ in100 = (`mod` 100) . abs
 
 foldMods :: State -> [Modifier] -> (State, S.Svg -> S.Svg)
 foldMods state mods =
-  let newState = foldl modifyState state mods
-      groupMods = mapMaybe groupModifier mods
+  let (maybeGroupMods, newState) = foldl applyMod ([], state) mods
+      groupMods = catMaybes maybeGroupMods
       maybeLayer =
         if null groupMods
         then id
         else foldl (<&>) S.g groupMods
   in  (newState, maybeLayer)
+  where
+    applyMod (groupMods, state) mod =
+      (groupModifier state mod : groupMods , modifyState state mod)
 
 joinRes :: Res -> Res -> Res
 joinRes (b1, s1) (b2, s2) = (combineBounds [b1, b2], s1 >> s2)

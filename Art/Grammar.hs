@@ -8,6 +8,7 @@ data Modifier
   = Color String
   | Scale Float
   | Move Vec
+  | Rotate Float
 
 -- | A production rule, including a starting probability of generation,
 --   a list of styles to be applied to sub-grammars, and a non-empty list of

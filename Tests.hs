@@ -112,10 +112,17 @@ rendersPolyScaled2
       b = Poly [(-2, 2), (1, -2)]
 
 fill
-  = testRender "another scaled poly" a [-1, -1, 2, 2]
+  = testRender "fill" a [-1, -1, 2, 2]
     $ S.g ! A.fill "green" $ circle 1 (0, 0)
     where
       a = Mod [Color "green"] b
+      b = Circle 1
+
+rotate
+  = testRender "rotation" a [-1, -1, 2, 2]
+    $ S.g ! A.transform "rotate(10.0 0.0 0.0)" $ circle 1 (0, 0)
+    where
+      a = Mod [Rotate 10] b
       b = Circle 1
 
 svgToText = TestCase $ do
@@ -143,6 +150,7 @@ tests = TestList
   , rendersPolyScaled
   , rendersPolyScaled2
   , fill
+  , rotate
   ]
 
 main = runTestTT tests
