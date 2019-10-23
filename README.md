@@ -28,7 +28,7 @@ a = Circle 1
 graphic1 = interpret $ Circle 1
 
 -- let's create a non-terminal, 'a', which renders a terminal, 'Circle 1'
--- and has an 85% chance of rendering another circle, placed to its right
+-- and has an 85% chance of rendering itself, placed to its right
 a = NonTerminal $ (100, Circle 1) :| [(85, b)]
 b = Mod [Move (2, 0)] a
 ```
