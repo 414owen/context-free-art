@@ -4,20 +4,15 @@
 
 module Art.Interpreter ( interpret ) where
 
-import TextShow
+import Control.Arrow
 import Data.List
 import Data.List.NonEmpty hiding (reverse)
-import Data.Functor
-import Data.Function
 import Data.Maybe
 import System.Random
 import Text.Blaze
-import qualified Data.Text as T
-import qualified TextShow as T
 import Text.Blaze.Svg11 ((!))
 import qualified Text.Blaze.Svg11 as S
 import qualified Text.Blaze.Svg11.Attributes as A
-import Text.Blaze.Svg.Renderer.String (renderSvg)
 
 import Art.Geometry
 import Art.Grammar
@@ -26,21 +21,10 @@ import Art.Util
 type Bound = (Float, Float, Float, Float)
 type BoundRes = Maybe Bound
 type Res = (BoundRes, S.Svg)
+type State = Vec
 
-data State
-  = State
-    { position :: Vec
-    , scale :: Float
-    , rotations :: [(Float, Vec)]
-    }
-
-emptyBound = Nothing
-emptyRes = (emptyBound, mempty)
-zeroPt = (0, 0)
-emptyState = State { position = zeroPt, scale = 1.0, rotations = [] }
-
-zero :: AttributeValue
-zero = toValue (0 :: Int)
+emptyRes :: Res
+emptyRes = (Nothing, mempty)
 
 combineBounds :: [BoundRes] -> BoundRes
 combineBounds boundsM =
@@ -51,17 +35,17 @@ combineBounds boundsM =
 
 -- pos, path
 poly :: State -> [Vec] -> Res
-poly State{ position=pos, scale=scale, rotations=rotations} pts =
-  let newPts = additiveRotation rotations . scaleVec scale <$> pos : pts
+poly pos pts =
+  let newPts = pos : pts
       (x, y) = pos
       (_, b) = foldl nextRes (pos, Just (x, y, x, y)) newPts
   in  (b, S.path ! A.d (toValue $ toPath newPts))
     where
       nextRes ((x, y), b) (dx, dy)
         = let (i, j) = (x + dx, y + dy)
-          in ( (i, j)
-             , combineBounds [b, Just (i, j, i, j)]
-             )
+          in  ( (i, j)
+              , combineBounds [b, Just (i, j, i, j)]
+              )
 
 -- rad, pos
 circle :: Float -> Vec -> Res
@@ -72,35 +56,33 @@ circle rad (x, y)
       ! A.cx (toValue x)
       ! A.cy (toValue y))
 
-groupModifier :: State -> Modifier -> Maybe (S.Svg -> S.Svg)
-groupModifier State { position = (x, y) } = \case
+modifyGroup :: Modifier -> Maybe (S.Svg -> S.Svg)
+modifyGroup = \case
     Color  c -> Just (! A.fill (toValue c))
     _        -> Nothing
 
 modifyState :: State -> Modifier -> State
-modifyState s@State{ position = pos, scale = scale, rotations = rotations }
-  = \case
-    Move p  -> s{ position =
-      addVecs pos (additiveRotation rotations $ scaleVec scale p) }
-    Scale n -> s{ scale = scale * n }
-    Rotate n -> s{ rotations = (n, pos) : rotations }
-    _       -> s
+modifyState pos = \case
+  Move p   -> addVecs pos p
+  _        -> pos
+
+modifySubs :: Modifier -> Symbol -> Symbol
+modifySubs (Move _)   subs        = subs
+modifySubs (Scale s)  (Circle r)  = Circle $ s * r
+modifySubs (Scale s)  (Poly vs)   = Poly $ scaleVec s <$> vs
+modifySubs (Rotate r) (Poly vs)   = Poly $ rotateZero r <$> vs
+modifySubs m          (NonTerminal prods)
+    = NonTerminal $ second (modifySubs m) <$> prods
+modifySubs mo (Mod ms a)
+  = Mod (modifyMod mo <$> ms) $ modifySubs mo a
+  where
+    modifyMod (Scale  s) (Move m) = Move $ scaleVec  s m
+    modifyMod (Rotate r) (Move m) = Move $ rotateZero r m
+    modifyMod _          m        = m
+modifySubs _ subs = subs
 
 in100 :: Int -> Int
 in100 = (`mod` 100) . abs
-
-foldMods :: State -> [Modifier] -> (State, S.Svg -> S.Svg)
-foldMods state mods =
-  let (maybeGroupMods, newState) = foldl applyMod ([], state) mods
-      groupMods = catMaybes maybeGroupMods
-      maybeLayer =
-        if null groupMods
-        then id
-        else foldl (<&>) S.g groupMods
-  in  (newState, maybeLayer)
-  where
-    applyMod (groupMods, state) mod =
-      (groupModifier state mod : groupMods, modifyState state mod)
 
 joinRes :: Res -> Res -> Res
 joinRes (b1, s1) (b2, s2) = (combineBounds [b1, b2], s1 >> s2)
@@ -109,26 +91,31 @@ sequenceRes :: (Monad m, Traversable t) => t (m Res) -> m Res
 sequenceRes rs = foldl joinRes emptyRes <$> sequence rs
 
 interpretNonTerminal :: State -> Production -> IO Res
-interpretNonTerminal state prod@(prob, sym)
+interpretNonTerminal state (prob, sym)
   = (< prob) . fromIntegral . in100 <$> randomIO
     >>= \case
       True -> interpretSymbol state sym
       False -> pure emptyRes
 
-second :: (a -> b) -> (c, a) -> (c, b)
-second f (a, b) = (a, f b)
-
 interpretSymbol :: State -> Symbol -> IO Res
-interpretSymbol state@State{ position = pos, scale = scale }
-  = \case
-    NonTerminal (x :| []) -> interpretNonTerminal state x
-    NonTerminal (x :| (y: ys)) ->
-      sequenceRes (interpretNonTerminal state <$> (x :| y : ys))
-    Circle r -> pure $ circle (r * scale) pos
-    Poly pts -> pure $ poly state pts
-    Mod mods sym ->
-        let (newState, layerMod) = foldMods state mods
-        in second layerMod <$> interpretSymbol newState sym
+interpretSymbol state = \case
+  NonTerminal (x :| []) -> interpretNonTerminal state x
+  NonTerminal (x :| (y: ys)) ->
+    sequenceRes (interpretNonTerminal state <$> (x :| y : ys))
+  Circle r -> pure $ circle r state
+  Poly pts -> pure $ poly state pts
+  Mod [] sym -> interpretSymbol state sym
+  Mod ms sym ->
+    let groupMods = catMaybes $ modifyGroup <$> ms
+        ed = if null groupMods then id else foldl (flip fmap) S.g groupMods
+        sub = interpretMods state ms sym
+    in  second ed <$> sub
+  where
+    interpretMods state' [] sym       = interpretSymbol state' sym
+    interpretMods state' (m : ms) sym =
+      let newState = modifyState state' m
+          newMods  = modifySubs m $ Mod ms sym
+      in  interpretSymbol newState newMods
 
 fourTupLst :: (a, a, a, a) -> [a]
 fourTupLst (a, b, c, d) = [a, b, c, d]
@@ -147,7 +134,7 @@ boundsToViewBox (x1, y1, x2, y2) = (x1, y1, x2 - x1, y2 - y1)
 --   blaze-svg's render functions, for example 'renderSvg'.
 interpret :: Symbol -> IO S.Svg
 interpret sym =
-  finalise <$> interpretSymbol emptyState sym
+  finalise <$> interpretSymbol (0, 0) sym
     where
       finalise :: Res -> S.Svg
       finalise (bounds, svg) = toSVG (boundsToViewBox (fromMaybe (0, 0, 0, 0) bounds)) svg

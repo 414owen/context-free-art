@@ -1,6 +1,5 @@
 module Art.Geometry where
 
-import Control.Arrow
 import Data.Biapplicative
 
 -- | A vector in 2d euclidian space.
@@ -21,17 +20,14 @@ subVecs v1 v2 = addVecs v1 $ reflectVec v2
 scaleVec :: Float -> Vec -> Vec
 scaleVec n = both (* n)
 
-degToRad = (* (pi / 180))
+radDegRatio :: Float
+radDegRatio = pi / 180
 
--- amount, around, vec
-rotateVec :: Float -> Vec -> Vec -> Vec
-rotateVec amtd cVec pt
-  = addVecs cVec (x * cos amt - y * sin amt, y * cos amt + x * sin amt)
-  where
-    (x, y) = subVecs pt cVec
-    amt = degToRad amtd
+degToRad :: Float -> Float
+degToRad = (* radDegRatio)
 
-additiveRotation :: [(Float, Vec)] -> Vec -> Vec
-additiveRotation [] pt = pt
-additiveRotation ((amt, rpt) : rs) pt
-  = rotateVec amt rpt $ additiveRotation rs pt
+rotateZero :: Float -> Vec -> Vec
+rotateZero amtd (x, y)
+  = (x * cos amt - y * sin amt, y * cos amt + x * sin amt)
+    where
+      amt = degToRad amtd
