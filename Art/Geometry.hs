@@ -20,3 +20,18 @@ subVecs v1 v2 = addVecs v1 $ reflectVec v2
 
 scaleVec :: Float -> Vec -> Vec
 scaleVec n = both (* n)
+
+degToRad = (* (pi / 180))
+
+-- amount, around, vec
+rotateVec :: Float -> Vec -> Vec -> Vec
+rotateVec amtd cVec pt
+  = addVecs cVec (x * cos amt - y * sin amt, y * cos amt + x * sin amt)
+  where
+    (x, y) = subVecs pt cVec
+    amt = degToRad amtd
+
+additiveRotation :: [(Float, Vec)] -> Vec -> Vec
+additiveRotation [] pt = pt
+additiveRotation ((amt, rpt) : rs) pt
+  = rotateVec amt rpt $ additiveRotation rs pt

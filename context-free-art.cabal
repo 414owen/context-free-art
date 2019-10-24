@@ -4,7 +4,7 @@ cabal-version:       2.4
 -- http://haskell.org/cabal/users-guide/
 
 name:                context-free-art
-version:             0.2.0.2
+version:             0.2.0.3
 synopsis:            Generate art from context-free grammars
 description:
     .

@@ -120,10 +120,31 @@ fill
 
 rotate
   = testRender "rotation" a [-1, -1, 2, 2]
-    $ S.g ! A.transform "rotate(10.0 0.0 0.0)" $ circle 1 (0, 0)
+    $ circle 1 (0, 0)
     where
       a = Mod [Rotate 10] b
       b = Circle 1
+
+rotateAndMove
+  = testRender "rotate and move" a [-1, -1, 2, 2]
+    $ circle 1 (1, 0)
+    where
+      a = Mod [Rotate 90, Move (0, -1)] b
+      b = Circle 1
+
+assertClose s a b = assertEqual s True $ abs (a - b) < 0.000001
+
+testRotateVec
+  = let (x, y) = rotateVec 90 (0, 0) (0, -1)
+    in TestCase $ do
+      assertClose "rotate vec x" 1 x
+      assertClose "rotate vec x" 0 y
+
+testReflectVec
+  = TestCase $ assertEqual "reflect vec" (1, 1) $ reflectVec (-1, -1)
+
+testSubVecs
+  = TestCase $ assertEqual "sub vec" (1, 2) $ subVecs (2, 4) (1, 2)
 
 svgToText = TestCase $ do
   res <- renderSvg <$> interpret (Circle 1)
@@ -151,6 +172,8 @@ tests = TestList
   , rendersPolyScaled2
   , fill
   , rotate
+  , testRotateVec
+  , testReflectVec
   ]
 
 main = runTestTT tests

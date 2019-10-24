@@ -31,12 +31,13 @@ data State
   = State
     { position :: Vec
     , scale :: Float
+    , rotations :: [(Float, Vec)]
     }
 
 emptyBound = Nothing
 emptyRes = (emptyBound, mempty)
 zeroPt = (0, 0)
-emptyState = State { position = zeroPt, scale = 1.0 }
+emptyState = State { position = zeroPt, scale = 1.0, rotations = [] }
 
 zero :: AttributeValue
 zero = toValue (0 :: Int)
@@ -50,8 +51,8 @@ combineBounds boundsM =
 
 -- pos, path
 poly :: State -> [Vec] -> Res
-poly State{ position=pos, scale=scale } pts = 
-  let newPts = scaleVec scale <$> pos : pts
+poly State{ position=pos, scale=scale, rotations=rotations} pts =
+  let newPts = additiveRotation rotations . scaleVec scale <$> pos : pts
       (x, y) = pos
       (_, b) = foldl nextRes (pos, Just (x, y, x, y)) newPts
   in  (b, S.path ! A.d (toValue $ toPath newPts))
@@ -74,15 +75,16 @@ circle rad (x, y)
 groupModifier :: State -> Modifier -> Maybe (S.Svg -> S.Svg)
 groupModifier State { position = (x, y) } = \case
     Color  c -> Just (! A.fill (toValue c))
-    Rotate n -> Just (! A.transform
-      (toValue $ "rotate(" <> T.unwords (T.showt <$> [n, x, y]) <> ")"))
     _        -> Nothing
 
 modifyState :: State -> Modifier -> State
-modifyState s@State{ position = pos, scale = scale } = \case
-  Move p  -> s{ position = addVecs pos (scaleVec scale p) }
-  Scale n -> s{ scale = scale * n }
-  _       -> s
+modifyState s@State{ position = pos, scale = scale, rotations = rotations }
+  = \case
+    Move p  -> s{ position =
+      addVecs pos (additiveRotation rotations $ scaleVec scale p) }
+    Scale n -> s{ scale = scale * n }
+    Rotate n -> s{ rotations = (n, pos) : rotations }
+    _       -> s
 
 in100 :: Int -> Int
 in100 = (`mod` 100) . abs
@@ -98,7 +100,7 @@ foldMods state mods =
   in  (newState, maybeLayer)
   where
     applyMod (groupMods, state) mod =
-      (groupModifier state mod : groupMods , modifyState state mod)
+      (groupModifier state mod : groupMods, modifyState state mod)
 
 joinRes :: Res -> Res -> Res
 joinRes (b1, s1) (b2, s2) = (combineBounds [b1, b2], s1 >> s2)
