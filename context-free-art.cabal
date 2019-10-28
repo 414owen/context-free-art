@@ -77,13 +77,8 @@ executable examples
   build-depends:    base >= 4.12 && < 5
                     , blaze-svg >= 0.3.6
                     , context-free-art
-                    , random >= 1.1
                     , blaze-markup
-                    , bifunctors >= 5.5
-                    , text-show >= 3.8
                     , text >= 1.2
-                    , HUnit >= 1.6
-                    , safe
                     , directory >= 1.3
   ghc-options:      -Wall -fwarn-incomplete-patterns
   default-language: Haskell2010
@@ -106,7 +101,6 @@ test-suite tests
                     , text-show >= 3.8
                     , text >= 1.2
                     , HUnit >= 1.6
-                    , safe
   ghc-options:      -Wall -fwarn-incomplete-patterns
   default-language: Haskell2010
 
@@ -127,5 +121,4 @@ library
                     , bifunctors >= 5.5
                     , text-show >= 3.8
                     , text >= 1.2
-                    , safe
   default-language: Haskell2010
