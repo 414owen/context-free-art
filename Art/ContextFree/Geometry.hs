@@ -1,4 +1,4 @@
-module Art.Geometry where
+module Art.ContextFree.Geometry where
 
 import Data.Biapplicative
 

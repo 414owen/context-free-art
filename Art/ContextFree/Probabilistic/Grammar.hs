@@ -1,14 +1,8 @@
-module Art.Grammar where
+module Art.ContextFree.Probabilistic.Grammar where
 
 import Data.List.NonEmpty
-import Art.Geometry
-
--- | Change the style applied to all downstream terminal symbols.
-data Modifier
-  = Color String
-  | Scale Float
-  | Move Vec
-  | Rotate Float
+import Art.ContextFree.Modifier
+import Art.ContextFree.Geometry (Vec)
 
 -- | A production rule, including a starting probability of generation,
 --   a list of styles to be applied to sub-grammars, and a non-empty list of
