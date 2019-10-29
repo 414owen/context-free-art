@@ -4,7 +4,7 @@ cabal-version:       2.4
 -- http://haskell.org/cabal/users-guide/
 
 name:                context-free-art
-version:             0.3.0.0
+version:             0.3.0.1
 synopsis:            Generate art from context-free grammars
 description:
     .
@@ -72,7 +72,8 @@ executable examples
   type:             exitcode-stdio-1.0
   main-is:          Main.hs
   hs-source-dirs:   examples
-  other-modules:    Sierpinski
+  other-modules:    Sierpinski.Triangle
+                    Sierpinski.Carpet
                     , Spiral
   build-depends:    base >= 4.12 && < 5
                     , blaze-svg >= 0.3.6

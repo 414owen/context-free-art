@@ -10,4 +10,4 @@ tupLst :: (a, a) -> [a]
 tupLst (a, b) = [a, b]
 
 toPath :: [Vec] -> T.Text
-toPath pts = T.intercalate " l" (T.unwords . tupLst . both showt <$> pts) <> "Z"
+toPath pts = "M" <> T.intercalate "l" (T.unwords . tupLst . both showt <$> pts) <> "Z"

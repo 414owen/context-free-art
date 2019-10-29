@@ -29,10 +29,10 @@ combineBounds bounds =
 -- pos, path
 poly :: State -> [Vec] -> Res
 poly pos pts =
-  let newPts = pos : pts
-      (x, y) = pos
-      (_, b) = foldl nextRes (pos, (x, y, x, y)) newPts
-  in  (b, S.path ! A.d (toValue $ toPath newPts))
+  let (x, y) = pos
+      --calculate bounds
+      (_, b) = foldl nextRes (pos, (x, y, x, y)) pts
+  in  (b, S.path ! A.d (toValue $ toPath $ pos : pts))
     where
       nextRes ((x, y), b) (dx, dy)
         = let (i, j) = (x + dx, y + dy)

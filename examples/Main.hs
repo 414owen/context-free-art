@@ -5,7 +5,8 @@ import qualified Data.Text.Lazy.IO as T
 import System.Directory
 import Text.Blaze.Svg.Renderer.Text
 import Spiral
-import Sierpinski
+import Sierpinski.Triangle
+import Sierpinski.Carpet
 
 baseDir :: String
 baseDir = "res"
@@ -23,7 +24,8 @@ renderTmp name symbol = do
 images :: [(String, Symbol)]
 images =
   [ ("spiral", spiral)
-  , ("sierpinski", sierpinski)
+  , ("sierpinski-triangle", sierpinskiTriangle)
+  , ("sierpinski-carpet", sierpinskiCarpet)
   ]
 
 main :: IO ()
