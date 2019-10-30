@@ -69,12 +69,12 @@ category:            Graphics
 extra-source-files:  CHANGELOG.md
 
 executable examples
-  type:             exitcode-stdio-1.0
   main-is:          Main.hs
   hs-source-dirs:   examples
   other-modules:    Sierpinski.Triangle
-                    Sierpinski.Carpet
+                    , Sierpinski.Carpet
                     , Spiral
+                    , Circles
   build-depends:    base >= 4.12 && < 5
                     , blaze-svg >= 0.3.6
                     , context-free-art
