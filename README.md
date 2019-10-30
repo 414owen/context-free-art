@@ -14,24 +14,7 @@ conform to the specified language.
 
 Our language will describe graphics.
 
-## Examples
-
-```haskell
-import Art.ContextFree.Probabilistic
-import Data.List.NonEmpty
-
--- let's define a Production rule
-a = Circle 1
-
--- this will produce an IO (Maybe Svg) from the blaze-svg package
--- to turn it into a string we can use one of the `blaze-svg` renderers
-graphic1 = render $ Circle 1
-
--- let's create a non-terminal, 'a', which renders a terminal, 'Circle 1'
--- and has an 85% chance of rendering itself, placed to its right
-a = NonTerminal $ (100, Circle 1) :| [(85, b)]
-b = Mod [Move (2, 0)] a
-```
+## How to use
 
 ```haskell
 import Art.ContextFree.Definite
@@ -54,3 +37,11 @@ spiral = Branch $
 The latter produces this graphic:
 
 ![spiral.svg](https://owen.cafe/res/context-free/spiral.svg)
+
+## Examples
+
+The code for these can be found in the [exmaples/](https://github.com/414owen/context-free-art/tree/master/examples) folder
+
+![circles.svg](https://owen.cafe/res/context-free/circles.svg)
+![sierpinski-triangle.svg](https://owen.cafe/res/context-free/sierpinski-triangle.svg)
+![sierpinski-carpet.svg](https://owen.cafe/res/context-free/sierpinski-carpet.svg)
