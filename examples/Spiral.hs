@@ -5,7 +5,7 @@ module Spiral ( spiral ) where
 import Art.ContextFree.Definite
 
 import Data.List.NonEmpty (NonEmpty(..))
-import Data.Semigroup.Traversable (Traversable1(..))
+import Data.Semigroup.Foldable (Foldable1(..))
 import qualified Semigroupoids.Do as S
 
 move :: SymBuilder a -> SymBuilder ()
@@ -23,5 +23,6 @@ arm = armN 11 (-10)
 spiral :: NonEmpty Symbol
 spiral = runSymBuilder $ S.do
   circle 1
-  flip traverse1 (0 :| [120, 240]) $
+  -- Could also use traverse1
+  flip foldMap1 (0 :| [120, 240]) $
     \a -> modify [Rotate a] arm
