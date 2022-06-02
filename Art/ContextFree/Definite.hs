@@ -13,10 +13,12 @@ module Art.ContextFree.Definite
   ( Modifier(..)
   , Symbol(..)
   , Vec
-  , render
+  , module Art.ContextFree.Definite.Builder
+  , module Art.ContextFree.Definite.Render
   ) where
 
 import Art.ContextFree.Definite.Grammar
 import Art.ContextFree.Definite.Render
+import Art.ContextFree.Definite.Builder
 import Art.ContextFree.Geometry
 import Art.ContextFree.Modifier

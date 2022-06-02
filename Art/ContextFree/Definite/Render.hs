@@ -2,7 +2,7 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE FlexibleInstances #-}
 
-module Art.ContextFree.Definite.Render ( render ) where
+module Art.ContextFree.Definite.Render ( Render(..) ) where
 
 import Data.List
 import Data.List.NonEmpty hiding (reverse)
@@ -14,6 +14,7 @@ import qualified Text.Blaze.Svg11.Attributes as A
 
 import Art.ContextFree.Geometry
 import Art.ContextFree.Definite.Grammar
+import Art.ContextFree.Definite.Builder (SymWriter, runSymWriter)
 import Art.ContextFree.Modifier
 import Art.ContextFree.Util
 
@@ -112,12 +113,21 @@ toSVG bound
 boundsToViewBox :: Bound -> Bound
 boundsToViewBox (x1, y1, x2, y2) = (x1, y1, x2 - x1, y2 - y1)
 
--- | Create a drawing from a grammar.
---   In order to get a string representation, you'll need to use one of
---   blaze-svg's render functions, for example 'renderSvg'.
-render :: Symbol -> S.Svg
-render sym =
-  finalise $ renderSymbol (0, 0) sym
-    where
-      finalise :: Res -> S.Svg
-      finalise (bounds, svg) = toSVG (boundsToViewBox bounds) svg
+class Render a where
+  -- | Create a drawing from a grammar.
+  --   In order to get a string representation, you'll need to use one of
+  --   blaze-svg's render functions, for example 'renderSvg'.
+  render :: a -> S.Svg
+
+instance Render Symbol where
+  render sym =
+    finalise $ renderSymbol (0, 0) sym
+      where
+        finalise :: Res -> S.Svg
+        finalise (bounds, svg) = toSVG (boundsToViewBox bounds) svg
+
+instance Render (NonEmpty Symbol) where
+  render = render . Branch
+
+instance Render (SymWriter a) where
+  render = render . runSymWriter
