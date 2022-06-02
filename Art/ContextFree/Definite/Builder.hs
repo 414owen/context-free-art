@@ -43,6 +43,12 @@ instance Apply SymWriter where
 instance Bind SymWriter where
   SymWriter w >>- f = SymWriter $ w >>= fmap unSymWriter f
 
+instance Semigroup a => Semigroup (SymWriter a) where
+  SymWriter w <> SymWriter w' = SymWriter $ do
+    a <- w
+    b <- w'
+    pure $ a <> b
+
 -- | Run a Monadic symbol writer
 runSymWriter :: SymWriter a -> NonEmpty Symbol
 runSymWriter = NE.fromList . DL.toList . execWriter . unSymWriter
