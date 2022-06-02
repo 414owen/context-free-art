@@ -27,11 +27,11 @@ images =
   [ ("spiral", Branch spiral)
   , ("sierpinski-triangle", sierpinskiTriangle)
   , ("sierpinski-carpet", sierpinskiCarpet)
-  , ("circles-1", Mod [Rotate 90] $ circles 2 5 [])
-  , ("circles-2", circles 3 5 [])
-  , ("circles-3", circles 3 5 [Rotate 180])
-  , ("circles-4", Mod [Rotate 90] $ circles 2 4 [Scale 0.8])
-  , ("circles-5", Mod [Rotate 45] $ circles 4 4 [])
+  , ("circles-1", Branch $ runSymBuilder $ modify [Rotate 90] $ circles 2 5 [])
+  , ("circles-2", Branch $ runSymBuilder $ circles 3 5 [])
+  , ("circles-3", Branch $ runSymBuilder $ circles 3 5 [Rotate 180])
+  , ("circles-4", Branch $ runSymBuilder $ modify [Rotate 90] $ circles 2 4 [Scale 0.8])
+  , ("circles-5", Branch $ runSymBuilder $ modify [Rotate 45] $ circles 4 4 [])
   ]
 
 main :: IO ()
