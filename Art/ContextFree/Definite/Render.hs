@@ -14,7 +14,7 @@ import qualified Text.Blaze.Svg11.Attributes as A
 
 import Art.ContextFree.Geometry
 import Art.ContextFree.Definite.Grammar
-import Art.ContextFree.Definite.Builder (SymWriter, runSymWriter)
+import Art.ContextFree.Definite.Builder (SymBuilder, runSymBuilder)
 import Art.ContextFree.Modifier
 import Art.ContextFree.Util
 
@@ -129,5 +129,5 @@ instance Render Symbol where
 instance Render (NonEmpty Symbol) where
   render = render . Branch
 
-instance Render (SymWriter a) where
-  render = render . runSymWriter
+instance Render (SymBuilder a) where
+  render = render . runSymBuilder

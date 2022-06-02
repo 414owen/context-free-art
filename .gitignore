@@ -1,3 +1,4 @@
-dist*
+dist
 .ghc*
 res
+dist-newstyle

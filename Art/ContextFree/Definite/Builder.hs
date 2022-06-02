@@ -13,12 +13,12 @@ to build images.
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module Art.ContextFree.Definite.Builder
-  ( SymWriter
+  ( SymBuilder
   , branch
   , modify
   , circle
   , poly
-  , runSymWriter
+  , runSymBuilder
   )
   where
 
@@ -34,40 +34,40 @@ import Control.Monad.Writer (Writer, execWriter, tell)
 import Data.Functor.Apply (Apply, (<.>))
 import Data.Functor.Bind (Bind, (>>-))
 
-newtype SymWriter a = SymWriter { unSymWriter :: Writer (DList Symbol) a }
+newtype SymBuilder a = SymBuilder { unSymBuilder :: Writer (DList Symbol) a }
   deriving Functor
 
-instance Apply SymWriter where
-  SymWriter w <.> SymWriter w' = SymWriter $ w <*> w'
+instance Apply SymBuilder where
+  SymBuilder w <.> SymBuilder w' = SymBuilder $ w <*> w'
 
-instance Bind SymWriter where
-  SymWriter w >>- f = SymWriter $ w >>= fmap unSymWriter f
+instance Bind SymBuilder where
+  SymBuilder w >>- f = SymBuilder $ w >>= fmap unSymBuilder f
 
-instance Semigroup a => Semigroup (SymWriter a) where
-  SymWriter w <> SymWriter w' = SymWriter $ do
+instance Semigroup a => Semigroup (SymBuilder a) where
+  SymBuilder w <> SymBuilder w' = SymBuilder $ do
     a <- w
     b <- w'
     pure $ a <> b
 
 -- | Run a Monadic symbol writer
-runSymWriter :: SymWriter a -> NonEmpty Symbol
-runSymWriter = NE.fromList . DL.toList . execWriter . unSymWriter
+runSymBuilder :: SymBuilder a -> NonEmpty Symbol
+runSymBuilder = NE.fromList . DL.toList . execWriter . unSymBuilder
 
-toWriter :: Symbol -> SymWriter ()
-toWriter = SymWriter . tell . pure
+toWriter :: Symbol -> SymBuilder ()
+toWriter = SymBuilder . tell . pure
 
 -- | Monadic analogue of `Branch`
-branch :: SymWriter a -> SymWriter ()
-branch = toWriter . Branch . runSymWriter
+branch :: SymBuilder a -> SymBuilder ()
+branch = toWriter . Branch . runSymBuilder
 
 -- | Monadic analogue of `Mod`
-modify :: [Modifier] -> SymWriter a -> SymWriter ()
-modify mods = toWriter . Mod mods . Branch . runSymWriter
+modify :: [Modifier] -> SymBuilder a -> SymBuilder ()
+modify mods = toWriter . Mod mods . Branch . runSymBuilder
 
 -- | Monadic analogue of `Circle`
-circle :: Float -> SymWriter ()
+circle :: Float -> SymBuilder ()
 circle = toWriter . Circle
 
 -- | Monadic analogue of `Poly`
-poly :: [Vec] -> SymWriter ()
+poly :: [Vec] -> SymBuilder ()
 poly = toWriter . Poly
