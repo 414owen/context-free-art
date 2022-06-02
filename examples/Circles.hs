@@ -17,19 +17,20 @@ withCol b = modify [Color $ if b then "#000" else "#fff"]
 
 layer :: Bool -> Subdivisions -> Layers -> LayerMods -> SymBuilder
 layer isDark _    0    _ = withCol isDark $ circle 1
-layer isDark subs layn layerMods
-  = let a = layer (not isDark) subs (layn - 1) layerMods
-        ang = 360.0 / fromIntegral subs
-        theta = pi / fromIntegral subs
-        r = sin theta / (1 + sin theta)
-    in withCol isDark $ S.do
-      circle 1
-      flip foldMap1 (1 :| [2..subs]) $ \c ->
-        modify
-          ([ Rotate $ ang * fromIntegral c
-          , Move (0, -1 + r)
-          , Scale r
-          ] <> layerMods) a
+layer isDark subs layn layerMods =
+  withCol isDark $ S.do
+    circle 1
+    flip foldMap1 (1 :| [2..subs]) $ \c ->
+      modify
+        ([ Rotate $ ang * fromIntegral c
+        , Move (0, -1 + r)
+        , Scale r
+        ] <> layerMods) a
+  where
+    a = layer (not isDark) subs (layn - 1) layerMods
+    ang = 360.0 / fromIntegral subs
+    theta = pi / fromIntegral subs
+    r = sin theta / (1 + sin theta)
 
 circles :: Subdivisions -> Layers -> LayerMods -> SymBuilder
 circles = layer True
