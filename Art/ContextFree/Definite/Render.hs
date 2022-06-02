@@ -129,5 +129,5 @@ instance Render Symbol where
 instance Render (NonEmpty Symbol) where
   render = render . Branch
 
-instance Render (SymBuilder a) where
+instance Render SymBuilder where
   render = render . runSymBuilder

@@ -34,40 +34,42 @@ import Control.Monad.Writer (Writer, execWriter, tell)
 import Data.Functor.Apply (Apply, (<.>))
 import Data.Functor.Bind (Bind, (>>-))
 
-newtype SymBuilder a = SymBuilder { unSymBuilder :: Writer (DList Symbol) a }
+newtype SymWriter a = SymBuilder { unSymBuilder :: Writer (DList Symbol) a }
   deriving Functor
 
-instance Apply SymBuilder where
+type SymBuilder = SymWriter ()
+
+instance Apply SymWriter where
   SymBuilder w <.> SymBuilder w' = SymBuilder $ w <*> w'
 
-instance Bind SymBuilder where
+instance Bind SymWriter where
   SymBuilder w >>- f = SymBuilder $ w >>= fmap unSymBuilder f
 
-instance Semigroup a => Semigroup (SymBuilder a) where
+instance Semigroup a => Semigroup (SymWriter a) where
   SymBuilder w <> SymBuilder w' = SymBuilder $ do
     a <- w
     b <- w'
     pure $ a <> b
 
 -- | Run a Monadic symbol writer
-runSymBuilder :: SymBuilder a -> NonEmpty Symbol
+runSymBuilder :: SymBuilder -> NonEmpty Symbol
 runSymBuilder = NE.fromList . DL.toList . execWriter . unSymBuilder
 
-toWriter :: Symbol -> SymBuilder ()
+toWriter :: Symbol -> SymBuilder
 toWriter = SymBuilder . tell . pure
 
 -- | Monadic analogue of `Branch`
-branch :: SymBuilder a -> SymBuilder ()
+branch :: SymBuilder -> SymBuilder
 branch = toWriter . Branch . runSymBuilder
 
 -- | Monadic analogue of `Mod`
-modify :: [Modifier] -> SymBuilder a -> SymBuilder ()
+modify :: [Modifier] -> SymBuilder -> SymBuilder
 modify mods = toWriter . Mod mods . Branch . runSymBuilder
 
 -- | Monadic analogue of `Circle`
-circle :: Float -> SymBuilder ()
+circle :: Float -> SymBuilder
 circle = toWriter . Circle
 
 -- | Monadic analogue of `Poly`
-poly :: [Vec] -> SymBuilder ()
+poly :: [Vec] -> SymBuilder
 poly = toWriter . Poly
