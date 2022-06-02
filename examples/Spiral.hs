@@ -1,21 +1,27 @@
+{-# LANGUAGE QualifiedDo #-}
+
 module Spiral ( spiral ) where
 
 import Art.ContextFree.Definite
-import Data.List.NonEmpty
 
-move :: Symbol -> Symbol
-move = Mod [Move (0, -1.8), Scale 0.8]
+import Data.List.NonEmpty (NonEmpty)
+import qualified Semigroupoids.Do as S
 
-armN :: Int -> Float -> Symbol
-armN 0 _   = move $ Circle 1
-armN n rot = move $ Branch $ Circle 1 :| [Mod [Rotate rot] $ armN (n - 1) rot]
+move :: SymWriter a -> SymWriter ()
+move = modify [Move (0, -1.8), Scale 0.8]
 
-arm :: Symbol
+armN :: Int -> Float -> SymWriter ()
+armN 0 _   = move $ circle 1
+armN n rot = move $ S.do
+  circle 1
+  modify [Rotate rot] $ armN (n - 1) rot
+
+arm :: SymWriter ()
 arm = armN 11 (-10)
 
-spiral :: Symbol
-spiral = Branch $ Circle 1 :|
-  [ arm
-  , Mod [Rotate 120] arm
-  , Mod [Rotate 240] arm
-  ]
+spiral :: NonEmpty Symbol
+spiral = runSymWriter $ S.do
+  circle 1
+  arm
+  modify [Rotate 120] arm
+  modify [Rotate 240] arm

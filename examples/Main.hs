@@ -24,7 +24,7 @@ renderTmp name symbol = do
 
 images :: [(String, Symbol)]
 images =
-  [ ("spiral", spiral)
+  [ ("spiral", Branch spiral)
   , ("sierpinski-triangle", sierpinskiTriangle)
   , ("sierpinski-carpet", sierpinskiCarpet)
   , ("circles-1", Mod [Rotate 90] $ circles 2 5 [])
