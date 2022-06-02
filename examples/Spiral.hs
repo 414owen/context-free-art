@@ -1,11 +1,10 @@
-{-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE QualifiedDo #-}
 
 module Spiral ( spiral ) where
 
 import Art.ContextFree.Definite
 
-import Data.List.NonEmpty (NonEmpty)
+import Data.List.NonEmpty (NonEmpty(..))
 import Data.Semigroup.Traversable (Traversable1(..))
 import qualified Semigroupoids.Do as S
 
@@ -24,5 +23,5 @@ arm = armN 11 (-10)
 spiral :: NonEmpty Symbol
 spiral = runSymBuilder $ S.do
   circle 1
-  flip traverse1 ([0, 120, 240] :: NonEmpty Float) $
+  flip traverse1 (0 :| [120, 240]) $
     \a -> modify [Rotate a] arm
