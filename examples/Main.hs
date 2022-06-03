@@ -29,11 +29,11 @@ images = second (Branch . runSymBuilder) <$>
   [ ("spiral", spiral)
   , ("sierpinski-triangle", sierpinskiTriangle)
   , ("sierpinski-carpet", sierpinskiCarpet)
-  , ("circles-1", modify [Rotate 90] $ circles 2 5 [])
+  , ("circles-1", circles 2 5 [] ! Rotate 90)
   , ("circles-2", circles 3 5 [])
   , ("circles-3", circles 3 5 [Rotate 180])
-  , ("circles-4", modify [Rotate 90] $ circles 2 4 [Scale 0.8])
-  , ("circles-5", modify [Rotate 45] $ circles 4 4 [])
+  , ("circles-4", circles 2 4 [Scale 0.8] ! Rotate 90)
+  , ("circles-5", circles 4 4 [] ! Rotate 45)
   ]
 
 main :: IO ()
