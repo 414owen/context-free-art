@@ -15,7 +15,7 @@ armN :: Int -> Float -> SymBuilder
 armN 0 _   = move $ circle 1
 armN n rot = move $ S.do
   circle 1
-  modify [Rotate rot] $ armN (n - 1) rot
+  armN (n - 1) rot ! Rotate rot
 
 arm :: SymBuilder
 arm = armN 11 (-10)
@@ -25,4 +25,4 @@ spiral = runSymBuilder $ S.do
   circle 1
   -- Could also use `Data.Semigroup.Traversable.traverse1`
   flip foldMap1 (0 :| [120, 240]) $
-    \a -> modify [Rotate a] arm
+    \a -> arm ! Rotate a
