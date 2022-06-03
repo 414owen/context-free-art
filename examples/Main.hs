@@ -1,13 +1,15 @@
 module Main where
 
 import Art.ContextFree.Definite
-import qualified Data.Text.Lazy.IO as T
-import System.Directory
-import Text.Blaze.Svg.Renderer.Text
 import Spiral
 import Circles
 import Sierpinski.Triangle
 import Sierpinski.Carpet
+
+import Control.Arrow (second)
+import qualified Data.Text.Lazy.IO as T
+import System.Directory
+import Text.Blaze.Svg.Renderer.Text
 
 baseDir :: String
 baseDir = "res"
@@ -23,15 +25,15 @@ renderTmp name symbol = do
   T.writeFile path $ renderSvg $ render symbol
 
 images :: [(String, Symbol)]
-images =
-  [ ("spiral", Branch spiral)
+images = second (Branch . runSymBuilder) <$>
+  [ ("spiral", spiral)
   , ("sierpinski-triangle", sierpinskiTriangle)
   , ("sierpinski-carpet", sierpinskiCarpet)
-  , ("circles-1", Branch $ runSymBuilder $ modify [Rotate 90] $ circles 2 5 [])
-  , ("circles-2", Branch $ runSymBuilder $ circles 3 5 [])
-  , ("circles-3", Branch $ runSymBuilder $ circles 3 5 [Rotate 180])
-  , ("circles-4", Branch $ runSymBuilder $ modify [Rotate 90] $ circles 2 4 [Scale 0.8])
-  , ("circles-5", Branch $ runSymBuilder $ modify [Rotate 45] $ circles 4 4 [])
+  , ("circles-1", modify [Rotate 90] $ circles 2 5 [])
+  , ("circles-2", circles 3 5 [])
+  , ("circles-3", circles 3 5 [Rotate 180])
+  , ("circles-4", modify [Rotate 90] $ circles 2 4 [Scale 0.8])
+  , ("circles-5", modify [Rotate 45] $ circles 4 4 [])
   ]
 
 main :: IO ()

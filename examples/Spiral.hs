@@ -20,8 +20,8 @@ armN n rot = move $ S.do
 arm :: SymBuilder
 arm = armN 11 (-10)
 
-spiral :: NonEmpty Symbol
-spiral = runSymBuilder $ S.do
+spiral :: SymBuilder
+spiral = S.do
   circle 1
   -- Could also use `Data.Semigroup.Traversable.traverse1`
   flip foldMap1 (0 :| [120, 240]) $
