@@ -1,14 +1,17 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE NamedFieldPuns #-}
 
 module Art.ContextFree.Definite.Render ( Render(..) ) where
 
+import Control.Monad.RWS
+import Data.Foldable
 import Data.List
-import Data.List.NonEmpty hiding (reverse)
+import Data.DList (DList)
+import Data.List.NonEmpty (NonEmpty(..))
 import Data.Maybe
 import Text.Blaze
-import Text.Blaze.Svg11 ((!))
 import qualified Text.Blaze.Svg11 as S
 import qualified Text.Blaze.Svg11.Attributes as A
 
@@ -20,7 +23,9 @@ import Art.ContextFree.Util
 
 type Bound = (Float, Float, Float, Float)
 type Res = (Bound, S.Svg)
-type State = Vec
+newtype RenderEnv = RenderEnv { displacement :: Vec }
+newtype RenderState = RenderState { uniqueId :: Int }
+type RenderM = RWS RenderEnv (DList S.Svg) RenderState
 
 combineBounds :: [Bound] -> Bound
 combineBounds bounds =
@@ -28,12 +33,12 @@ combineBounds bounds =
   in  (minimum x1, minimum y1, maximum x2, maximum y2)
 
 -- pos, path
-poly :: State -> [Vec] -> Res
-poly pos pts =
-  let (x, y) = pos
+poly :: RenderEnv -> [Vec] -> Res
+poly rstate pts =
+  let (x, y) = displacement rstate
       --calculate bounds
-      (_, b) = foldl nextRes (pos, (x, y, x, y)) pts
-  in  (b, S.path ! A.d (toValue $ toPath $ pos : pts))
+      (_, b) = foldl nextRes (displacement rstate, (x, y, x, y)) pts
+  in  (b, S.path ! A.d (toValue $ toPath $ displacement rstate : pts))
     where
       nextRes ((x, y), b) (dx, dy)
         = let (i, j) = (x + dx, y + dy)
@@ -52,13 +57,13 @@ circle rad (x, y)
 
 modifyGroup :: Modifier -> Maybe (S.Svg -> S.Svg)
 modifyGroup = \case
-    Color  c -> Just (! A.fill (toValue c))
-    _        -> Nothing
+  Color  c -> Just (! A.fill (toValue c))
+  _        -> Nothing
 
-modifyState :: State -> Modifier -> State
-modifyState pos = \case
-  Move p   -> addVecs pos p
-  _        -> pos
+modifyEnv :: Modifier -> RenderM a -> RenderM a
+modifyEnv m = local $ \s -> case m of
+  Move p   -> s{ displacement = addVecs (displacement s) p }
+  _        -> s
 
 modifySubs :: Modifier -> Symbol -> Symbol
 modifySubs (Move _)   subs        = subs
@@ -73,6 +78,7 @@ modifySubs mo (Mod ms a)
     modifyMod (Scale  s) (Move m) = Move $ scaleVec  s m
     modifyMod (Rotate r) (Move m) = Move $ rotateZero r m
     modifyMod _          m        = m
+modifySubs m (Bite a b) = Bite (modifySubs m a) (modifySubs m b)
 modifySubs _ subs = subs
 
 joinRes :: Res -> Res -> Res
@@ -81,25 +87,63 @@ joinRes (b1, s1) (b2, s2) = (combineBounds [b1, b2], s1 >> s2)
 sequenceRes :: Traversable t => Res -> t Res -> Res
 sequenceRes = foldl joinRes
 
-renderSymbol :: State -> Symbol -> Res
-renderSymbol state = \case
-  Branch (x :| []) -> renderSymbol state x
-  Branch (x :| (y: ys)) ->
-    sequenceRes (renderSymbol state x) (renderSymbol state <$> (y : ys))
-  Circle r -> circle r state
-  Poly pts -> poly state pts
-  Mod [] sym -> renderSymbol state sym
-  Mod ms sym ->
+childLayerContainsBite :: Symbol -> Bool
+childLayerContainsBite a = case a of
+  Branch xs -> any childLayerContainsBite xs
+  Bite _ _ -> True
+  Mod _ s -> childLayerContainsBite s
+  _ -> False
+
+incId :: RenderState -> RenderState
+incId s = s{ uniqueId = uniqueId s + 1 }
+
+useId :: RenderM String
+useId = do
+  s <- get
+  modify incId
+  pure $ "m-" <> show (uniqueId s)
+
+renderSymbol :: Symbol -> RenderM Res
+renderSymbol = \case
+  Branch (x :| []) -> renderSymbol x
+  Branch (x :| (y : ys)) -> do
+    r1 <- renderSymbol x
+    rs <- mapM renderSymbol (y : ys)
+    pure $ sequenceRes r1 rs
+  Circle r -> do
+    RenderEnv{displacement} <- ask
+    pure $ circle r $ displacement
+  Poly pts -> do
+    renv <- ask
+    pure $ poly renv pts
+  Bite { parent, bite } -> do
+    unid <- useId
+    (bounds1, spar) <- renderSymbol parent
+    (bounds2, sbite) <- renderSymbol bite
+    let bounds@(x, y, x', y') = combineBounds [bounds1, bounds2]
+    let spar' = if childLayerContainsBite parent then S.g spar else spar
+    tell $ pure $ S.mask ! A.id_ (stringValue unid) $ do
+      S.rect
+        ! A.x (toValue x)
+        ! A.y (toValue y)
+        ! A.width (toValue $ x' - x)
+        ! A.height (toValue $ y' - y)
+        ! A.fill "#fff"
+      sbite
+    let s' = spar' ! A.mask (stringValue $ "url(#" <> unid <> ")")
+    pure $ (bounds, s')
+  Mod [] sym -> renderSymbol sym
+  Mod ms sym -> do
     let groupMods = catMaybes $ modifyGroup <$> ms
-        ed = if null groupMods then id else foldl (flip fmap) S.g groupMods
-        sub = renderMods state ms sym
-    in  ed <$> sub
-  where
-    renderMods state' [] sym       = renderSymbol state' sym
-    renderMods state' (m : ms) sym =
-      let newState = modifyState state' m
-          newMods  = modifySubs m $ Mod ms sym
-      in  renderSymbol newState newMods
+    let ed = if null groupMods then id else foldl (flip fmap) S.g groupMods
+    sub <- renderMods ms
+    pure $ ed <$> sub
+
+    where
+      renderMods [] = renderSymbol sym
+      renderMods (m : ms') = modifyEnv m $ do
+        let newMods = modifySubs m $ Mod ms' sym
+        renderSymbol newMods
 
 fourTupLst :: (a, a, a, a) -> [a]
 fourTupLst (a, b, c, d) = [a, b, c, d]
@@ -121,10 +165,12 @@ class Render a where
 
 instance Render Symbol where
   render sym =
-    finalise $ renderSymbol (0, 0) sym
+    finalise $ evalRWS (renderSymbol sym) (RenderEnv (0, 0)) (RenderState 0)
       where
-        finalise :: Res -> S.Svg
-        finalise (bounds, svg) = toSVG (boundsToViewBox bounds) svg
+        finalise :: (Res, DList S.Svg) -> S.Svg
+        finalise ((bounds, svg), els) = toSVG (boundsToViewBox bounds) $ do
+          svg
+          fold els
 
 instance Render (NonEmpty Symbol) where
   render = render . Branch

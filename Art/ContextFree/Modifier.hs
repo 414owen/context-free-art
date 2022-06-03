@@ -8,3 +8,4 @@ data Modifier
   | Scale Float
   | Move Vec
   | Rotate Float
+  deriving Show

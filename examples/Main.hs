@@ -24,6 +24,9 @@ renderTmp name symbol = do
   createDirectoryIfMissing True baseDir
   T.writeFile path $ renderSvg $ render symbol
 
+maskTest :: SymBuilder
+maskTest = circle 1 !> (circle 0.5 !> circle 0.3)
+
 images :: [(String, Symbol)]
 images = second (Branch . runSymBuilder) <$>
   [ ("spiral", spiral)
@@ -34,6 +37,7 @@ images = second (Branch . runSymBuilder) <$>
   , ("circles-3", circles 3 5 [Rotate 180])
   , ("circles-4", circles 2 4 [Scale 0.8] ! Rotate 90)
   , ("circles-5", circles 4 4 [] ! Rotate 45)
+  , ("mask-test", maskTest)
   ]
 
 main :: IO ()

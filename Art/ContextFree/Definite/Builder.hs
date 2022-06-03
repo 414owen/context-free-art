@@ -19,7 +19,10 @@ module Art.ContextFree.Definite.Builder
   , circle
   , poly
   , runSymBuilder
+  , runSymBuilder'
   , (!)
+  , (!>)
+  , (<!)
   )
   where
 
@@ -27,7 +30,7 @@ import Art.ContextFree.Definite.Grammar
 import Art.ContextFree.Geometry
 import Art.ContextFree.Modifier
 
-import Data.List.NonEmpty (NonEmpty)
+import Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.List.NonEmpty as NE
 import Data.DList (DList)
 import qualified Data.DList as DL
@@ -56,20 +59,34 @@ instance Semigroup a => Semigroup (SymWriter a) where
 runSymBuilder :: SymBuilder -> NonEmpty Symbol
 runSymBuilder = NE.fromList . DL.toList . execWriter . unSymBuilder
 
+runSymBuilder' :: SymBuilder -> Symbol
+runSymBuilder' a = case runSymBuilder a of
+  x :| [] -> x
+  xs -> Branch xs
+
 toWriter :: Symbol -> SymBuilder
 toWriter = SymBuilder . tell . pure
 
 -- | Monadic analogue of `Branch`
 branch :: SymBuilder -> SymBuilder
-branch = toWriter . Branch . runSymBuilder
+branch = toWriter . runSymBuilder'
 
 -- | Monadic analogue of `Mod`
 modify :: [Modifier] -> SymBuilder -> SymBuilder
-modify mods = toWriter . Mod mods . Branch . runSymBuilder
+modify [] = id
+modify mods = toWriter . Mod mods . runSymBuilder'
 
-infixl 1 !
+infixl 2 !
 (!) :: SymBuilder -> Modifier -> SymBuilder
 (!) s m = modify [m] s
+
+infixl 1 !>
+(!>) :: SymBuilder -> SymBuilder-> SymBuilder
+(!>) a b = toWriter $ Bite (runSymBuilder' a) (runSymBuilder' b)
+
+infixl 1 <!
+(<!) :: SymBuilder -> SymBuilder-> SymBuilder
+(<!) = flip (!>)
 
 -- | Monadic analogue of `Circle`
 circle :: Float -> SymBuilder

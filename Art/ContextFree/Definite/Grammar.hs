@@ -16,6 +16,10 @@ data Symbol
   -- | Produce a circle with a radius.
   | Circle Float
 
+  -- | Remove a chunk from a shape
+  | Bite { parent :: Symbol, bite :: Symbol }
+
   -- | Produce a polygon by relative points.
   --   Starts and ends at (0, 0).
   | Poly [Vec]
+  deriving Show

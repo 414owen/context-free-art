@@ -24,3 +24,4 @@ data Symbol
   -- | Produce a polygon by relative points.
   --   Starts and ends at (0, 0).
   | Poly [Vec]
+  deriving Show

@@ -12,9 +12,7 @@ square :: SymBuilder
 square = poly [(0, 1), (1, 0), (0, -1)]
 
 layer :: Int -> SymBuilder
-layer 0 = branch $ S.do
-  square
-  modify [Move (third, third), Scale third, Color "#fff"] square
+layer 0 =  square !> modify [Move (third, third), Scale third] square
 layer n =
   flip (!) (Scale third) $ branch $ S.do
     row
