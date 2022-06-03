@@ -19,6 +19,7 @@ module Art.ContextFree.Definite.Builder
   , circle
   , poly
   , runSymBuilder
+  , (!)
   )
   where
 
@@ -65,6 +66,10 @@ branch = toWriter . Branch . runSymBuilder
 -- | Monadic analogue of `Mod`
 modify :: [Modifier] -> SymBuilder -> SymBuilder
 modify mods = toWriter . Mod mods . Branch . runSymBuilder
+
+infixl 1 !
+(!) :: SymBuilder -> Modifier -> SymBuilder
+(!) s m = modify [m] s
 
 -- | Monadic analogue of `Circle`
 circle :: Float -> SymBuilder

@@ -21,11 +21,10 @@ layer isDark subs layn layerMods =
   withCol isDark $ S.do
     circle 1
     flip foldMap1 (1 :| [2..subs]) $ \c ->
-      modify
-        ([ Rotate $ ang * fromIntegral c
-        , Move (0, -1 + r)
-        , Scale r
-        ] <> layerMods) a
+      modify layerMods a
+        ! Scale r
+        ! Move (0, -1 + r)
+        ! Rotate (ang * fromIntegral c)
   where
     a = layer (not isDark) subs (layn - 1) layerMods
     ang = 360.0 / fromIntegral subs
