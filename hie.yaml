@@ -1,0 +1,10 @@
+cradle:
+  cabal:
+    - path: "src"
+      component: "lib:context-free-art"
+
+    - path: "examples"
+      component: "context-free-art:exe:examples"
+
+    - path: "tests"
+      component: "context-free-art:test:tests"

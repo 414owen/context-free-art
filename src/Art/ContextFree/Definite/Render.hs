@@ -1,51 +1,58 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE NamedFieldPuns #-}
 
-module Art.ContextFree.Definite.Render ( Render(..) ) where
+module Art.ContextFree.Definite.Render ( render ) where
 
-import Control.Monad.RWS
+import Control.Monad.RWS.Strict
+import Control.Monad.State.Strict
+import Control.Monad.Writer.Strict
 import Data.Foldable
-import Data.List
 import Data.DList (DList)
+import qualified Data.DList as DL
+import Data.IntMap.Strict (IntMap)
+import qualified Data.IntMap as M
+import Data.IntSet (IntSet)
+import qualified Data.IntSet as IS
 import Data.List.NonEmpty (NonEmpty(..))
-import Data.Maybe
+import qualified Data.List.NonEmpty as NE
+import Linear.Matrix
+import Linear.V3
 import Text.Blaze
 import qualified Text.Blaze.Svg11 as S
 import qualified Text.Blaze.Svg11.Attributes as A
 
 import Art.ContextFree.Geometry
 import Art.ContextFree.Definite.Grammar
-import Art.ContextFree.Definite.Builder (SymBuilder, runSymBuilder)
 import Art.ContextFree.Modifier
-import Art.ContextFree.Util
 
 type Bound = (Float, Float, Float, Float)
-type Res = (Bound, S.Svg)
-newtype RenderEnv = RenderEnv { displacement :: Vec }
-newtype RenderState = RenderState { uniqueId :: Int }
-type RenderM = RWS RenderEnv (DList S.Svg) RenderState
 
-combineBounds :: [Bound] -> Bound
-combineBounds bounds =
-  let (x1, y1, x2, y2) = unzip4 bounds
-  in  (minimum x1, minimum y1, maximum x2, maximum y2)
+addBounds :: Bound -> Bound -> Bound
+addBounds (x1, y1, x2, y2) (x3, y3, x4, y4) = (min x1 x3, min y1 y3, max x2 x4, max y2 y4)
 
+sequenceBounds :: Foldable f => f Bound -> Bound
+sequenceBounds = foldl1 addBounds
+
+{-
 -- pos, path
-poly :: RenderEnv -> [Vec] -> Res
-poly rstate pts =
-  let (x, y) = displacement rstate
-      --calculate bounds
+poly :: RenderEnv -> Vec -> NonEmpty Vec -> Res
+poly rstate p pts' =
+  let 
+      pts = p : NE.toList pts'
+      (x, y) = displacement rstate
+      -- calculate bounds
       (_, b) = foldl nextRes (displacement rstate, (x, y, x, y)) pts
   in  (b, S.path ! A.d (toValue $ toPath $ displacement rstate : pts))
     where
       nextRes ((x, y), b) (dx, dy)
         = let (i, j) = (x + dx, y + dy)
           in  ( (i, j)
-              , combineBounds [b, (i, j, i, j)]
+              , sequenceBounds [b, (i, j, i, j)]
               )
+              -}
 
+{-
 -- rad, pos
 circle :: Float -> Vec -> Res
 circle rad (x, y)
@@ -54,7 +61,9 @@ circle rad (x, y)
       ! A.r (toValue rad)
       ! A.cx (toValue x)
       ! A.cy (toValue y))
+-}
 
+{-
 modifyGroup :: Modifier -> Maybe (S.Svg -> S.Svg)
 modifyGroup = \case
   Color  c -> Just (! A.fill (toValue c))
@@ -64,12 +73,15 @@ modifyEnv :: Modifier -> RenderM a -> RenderM a
 modifyEnv m = local $ \s -> case m of
   Move p   -> s{ displacement = addVecs (displacement s) p }
   _        -> s
+  -}
 
-modifySubs :: Modifier -> Symbol -> Symbol
+{-
+-- TODO optimize with mod mod mod mod
+modifySubs :: Modifier -> Symbol SymRef -> Symbol SymRef
 modifySubs (Move _)   subs        = subs
 modifySubs (Scale s)  (Circle r)  = Circle $ s * r
-modifySubs (Scale s)  (Poly vs)   = Poly $ scaleVec s <$> vs
-modifySubs (Rotate r) (Poly vs)   = Poly $ rotateZero r <$> vs
+modifySubs (Scale s)  (Poly v vs) = Poly (scaleVec s v) $ scaleVec s <$> vs
+modifySubs (Rotate r) (Poly v vs)   = Poly (rotateZero r v) $ rotateZero r <$> vs
 modifySubs m          (Branch prods)
     = Branch $ modifySubs m <$> prods
 modifySubs mo (Mod ms a)
@@ -80,19 +92,23 @@ modifySubs mo (Mod ms a)
     modifyMod _          m        = m
 modifySubs m (Bite a b) = Bite (modifySubs m a) (modifySubs m b)
 modifySubs _ subs = subs
+-}
 
+{-
 joinRes :: Res -> Res -> Res
-joinRes (b1, s1) (b2, s2) = (combineBounds [b1, b2], s1 >> s2)
+joinRes (b1, s1) (b2, s2) = (sequenceBounds [b1, b2], s1 >> s2)
 
 sequenceRes :: Traversable t => Res -> t Res -> Res
 sequenceRes = foldl joinRes
 
-childLayerContainsBite :: Symbol -> Bool
+childLayerContainsBite :: Symbol SymRef -> RenderM Bool
 childLayerContainsBite a = case a of
-  Branch xs -> any childLayerContainsBite xs
-  Bite _ _ -> True
-  Mod _ s -> childLayerContainsBite s
-  _ -> False
+  Branch xs -> do
+    xs' <- traverse getSym xs
+    or <$> traverse childLayerContainsBite xs'
+  Bite _ _ -> pure True
+  Mod _ s -> childLayerContainsBite =<< getSym s
+  _ -> pure False
 
 incId :: RenderState -> RenderState
 incId s = s{ uniqueId = uniqueId s + 1 }
@@ -103,8 +119,11 @@ useId = do
   modify incId
   pure $ "m-" <> show (uniqueId s)
 
-renderSymbol :: Symbol -> RenderM Res
-renderSymbol = \case
+renderSymbol :: Symbol SymRef -> RenderM Res
+renderSymbol = undefined
+-}
+
+{-\case
   Branch (x :| []) -> renderSymbol x
   Branch (x :| (y : ys)) -> do
     r1 <- renderSymbol x
@@ -113,14 +132,14 @@ renderSymbol = \case
   Circle r -> do
     RenderEnv{displacement} <- ask
     pure $ circle r $ displacement
-  Poly pts -> do
+  Poly p pts -> do
     renv <- ask
-    pure $ poly renv pts
+    pure $ poly renv p pts
   Bite { parent, bite } -> do
     unid <- useId
     (bounds1, spar) <- renderSymbol parent
     (bounds2, sbite) <- renderSymbol bite
-    let bounds@(x, y, x', y') = combineBounds [bounds1, bounds2]
+    let bounds@(x, y, x', y') = sequenceBounds [bounds1, bounds2]
     let spar' = if childLayerContainsBite parent then S.g spar else spar
     tell $ pure $ S.mask ! A.id_ (stringValue unid) $ do
       S.rect
@@ -144,6 +163,100 @@ renderSymbol = \case
       renderMods (m : ms') = modifyEnv m $ do
         let newMods = modifySubs m $ Mod ms' sym
         renderSymbol newMods
+        -}
+
+getSym' :: SymRef -> SymSoup -> Symbol SymRef
+getSym' ref s = s M.! unSymRef ref
+
+{-
+getSym :: SymRef -> RenderM (Symbol SymRef)
+getSym ref = do
+  m <- soup <$> ask
+  return $ getSym' ref m
+-}
+
+data Modifiers
+  = Modifiers
+  { transform :: M33 Float
+  , scale :: Float
+  }
+
+instance Semigroup Modifiers where
+  m1 <> m2 = Modifiers (transform m1 !*! transform m2) (scale m1 * scale m2)
+
+toRad :: Float -> Float
+toRad = (* pi) . (/ 180)
+
+rotateMat :: Float -> M33 Float
+rotateMat r =
+  let
+    r' = toRad r
+    c = cos r'
+    s = sin r'
+  in V3
+    (V3 c (0 - s) 0)
+    (V3 s c 0)
+    (V3 0 0 1)
+
+translateMat :: Vec -> M33 Float
+translateMat (x, y) = V3
+  (V3 1 0 x)
+  (V3 0 1 y)
+  (V3 0 0 1)
+
+-- uniform x/y scale
+scaleMat :: Float -> M33 Float
+scaleMat s = V3
+  (V3 s 0 0)
+  (V3 0 s 0)
+  (V3 0 0 1)
+
+addMod :: Modifier -> Modifiers -> Modifiers
+addMod mod mods = case mod of
+  Scale n -> mods <> Modifiers (scaleMat n) n
+  Rotate n -> mods <> Modifiers (rotateMat n) 1
+  Move n -> mods <> Modifiers (translateMat n) 1
+  _ -> mods
+
+addMods :: Foldable f => f Modifier -> Modifiers -> Modifiers
+addMods ms m = foldl' (flip addMod) m ms
+
+noMods :: Modifiers
+noMods = Modifiers identity 1
+
+traverseBounds :: (Functor f, Foldable f) => (a -> Bound) -> f a -> Bound
+traverseBounds f = sequenceBounds . fmap f
+
+ptToBound :: Vec -> Bound
+ptToBound (x, y) = (x, y, x, y)
+
+transformPt :: M33 Float -> Vec -> Vec
+transformPt mat (x, y) = case mat !* V3 x y 1 of
+  V3 x' y' _ -> (x', y')
+
+type BoundM = State (IntMap Bound)
+
+getBounds :: SymSoup -> SymRef -> Bound
+getBounds symsoup root = evalState (f noMods root) M.empty
+  where
+    f :: Modifiers -> SymRef -> BoundM Bound
+    f mods@(Modifiers mat scale) ref = do
+      let sym = getSym' ref symsoup
+      cache <- get
+      case M.lookup (unSymRef ref) cache of
+        Just bound -> pure bound
+        Nothing -> case sym of
+          Branch xs -> sequenceBounds <$> traverse (f mods) xs
+          Circle r -> let (x, y) = transformPt mat (0, 0)
+                          r' = max 0 $ scale * r
+                      in
+            pure (x - r', y - r', x + r', y + r')
+          Poly p (p' :| ps) -> pure $ traverseBounds (ptToBound . transformPt mat) $ p : p' : ps
+          Bite { parent, bite } -> do
+            bounds1 <- f mods parent
+            bounds2 <- f mods bite
+            pure $ addBounds bounds1 bounds2
+          Mod ms sub -> f (addMods ms mods) sub
 
 fourTupLst :: (a, a, a, a) -> [a]
 fourTupLst (a, b, c, d) = [a, b, c, d]
@@ -157,23 +270,71 @@ toSVG bound
 boundsToViewBox :: Bound -> Bound
 boundsToViewBox (x1, y1, x2, y2) = (x1, y1, x2 - x1, y2 - y1)
 
-class Render a where
-  -- | Create a drawing from a grammar.
-  --   In order to get a string representation, you'll need to use one of
-  --   blaze-svg's render functions, for example 'renderSvg'.
-  render :: a -> S.Svg
+type CollectM = Writer (DList SymRef)
 
-instance Render Symbol where
-  render sym =
-    finalise $ evalRWS (renderSymbol sym) (RenderEnv (0, 0)) (RenderState 0)
-      where
-        finalise :: (Res, DList S.Svg) -> S.Svg
-        finalise ((bounds, svg), els) = toSVG (boundsToViewBox bounds) $ do
-          svg
-          fold els
+collectRefs :: SymSoup -> SymRef -> DList SymRef
+collectRefs soup ref = execWriter (count ref)
+  where
+    -- TODO cache results in an IntMap state, instead of using MonadWriter
+    count :: SymRef -> CollectM ()
+    count ref' = do
+      tell $ pure ref'
+      let sym = getSym' ref' soup
+      case sym of
+        Branch xs -> traverse_ count $ NE.toList xs
+        Mod _ x -> count x
+        Bite a b -> count a >> count b
+        _ -> pure ()
 
-instance Render (NonEmpty Symbol) where
-  render = render . Branch
+countUnion :: IntMap Int -> IntMap Int -> IntMap Int
+countUnion = M.unionWith (+)
 
-instance Render SymBuilder where
-  render = render . runSymBuilder
+toSingleCount :: Int -> IntMap Int
+toSingleCount a = M.singleton a 1
+
+type Id = Int
+
+type RenderM = RWS () S.Svg IntSet
+
+-- | Create a drawing from a grammar.
+--   In order to get a string representation, you'll need to use one of
+--   blaze-svg's render functions, for example 'renderSvg'.
+render :: Image -> S.Svg
+render (soup, ref) = undefined
+  where
+    allRefs :: [SymRef]
+    allRefs = DL.toList $ collectRefs soup ref
+
+    useCounts :: IntMap Int
+    useCounts = foldl countUnion M.empty $ toSingleCount . unSymRef <$> allRefs
+    
+    reusedRefs :: IntMap Id
+    reusedRefs = M.fromList $ (`zip` [0..]) $ fmap fst $ filter ((> 1) . snd) $ M.assocs useCounts
+
+    bounds :: Bound
+    bounds = getBounds soup ref
+
+    finalise :: DList S.Svg -> S.Svg
+    finalise els = toSVG (boundsToViewBox bounds) $ fold els
+
+    toId :: SymRef -> String
+    toId n = "r" <> show (reusedRefs M.! unSymRef n)
+
+    toLink :: SymRef -> Attribute
+    toLink ref = A.xlinkHref $ toValue $ "url(#" <> toId ref <> ")"
+
+    renderEl :: SymRef -> RenderM S.Svg
+    renderEl ref = do
+      let sym = getSym' ref soup
+      s <- get
+      modify $ IS.insert $ unSymRef ref
+      if not $ IS.member (unSymRef ref) s
+      then pure $ S.use ! toLink ref
+      else case sym of
+        Branch xs -> fold <$> traverse renderEl xs
+        Circle r -> pure $ S.circle S.! A.r (toValue r)
+        Poly p (p' :| ps) ->
+          pure $ S.path ! A.d (toValue $ unwords $ ("l" <>) . show <$> p : p' : ps)
+        Bite { parent, bite } -> do
+          tell $ S.mask ! A.id (toValue $ toId ref)
+        Mod ms sub -> undefined

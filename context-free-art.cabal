@@ -23,7 +23,6 @@ description:
     .
     == Example
     .
-    > import Art.ContextFree.Probabilistic
     > import Data.List.NonEmpty
     >
     > -- let's define a Production rule
@@ -68,6 +67,31 @@ maintainer:          414owen@gmail.com
 category:            Graphics
 extra-source-files:  CHANGELOG.md
 
+
+library
+  hs-source-dirs:   src
+  exposed-modules:  Art.ContextFree.Definite
+  other-modules:    Art.ContextFree.Geometry
+                    , Art.ContextFree.Definite.Grammar
+                    , Art.ContextFree.Definite.Builder
+                    , Art.ContextFree.Definite.Render
+                    , Art.ContextFree.Modifier
+                    , Art.ContextFree.Util
+  build-depends:    base >= 4.15 && < 5
+                    , blaze-svg >= 0.3.6
+                    , dlist >= 1.0 && < 2
+                    , linear
+                    , mtl >= 2.2 && < 3
+                    , containers
+                    , random >= 1.1
+                    , blaze-markup
+                    , bifunctors >= 5.5
+                    , semigroupoids >= 5.3 && < 5.4
+                    , text-show >= 3.8
+                    , text >= 1.2
+  ghc-options:      -Wall -fwarn-incomplete-patterns
+  default-language: Haskell2010
+
 executable examples
   main-is:          Main.hs
   hs-source-dirs:   examples
@@ -88,16 +112,15 @@ executable examples
 test-suite tests
   type:             exitcode-stdio-1.0
   main-is:          Tests.hs
-  hs-source-dirs:   src, tests
-  other-modules:    Art.ContextFree.Geometry
-                    , Art.ContextFree.Definite.Grammar
-                    , Art.ContextFree.Definite.Builder
-                    , Art.ContextFree.Probabilistic.Grammar
-                    , Art.ContextFree.Definite.Render
-                    , Art.ContextFree.Modifier
-                    , Art.ContextFree.Probabilistic.Render
-                    , Art.ContextFree.Util
-  build-depends:    base >= 4.12 && < 5
+  hs-source-dirs:   tests
+  -- hs-source-dirs:   src, tests
+  -- other-modules:    Art.ContextFree.Geometry
+  --                   , Art.ContextFree.Definite.Grammar
+  --                   , Art.ContextFree.Definite.Builder
+  --                   , Art.ContextFree.Definite.Render
+  --                   , Art.ContextFree.Modifier
+  --                   , Art.ContextFree.Util
+  build-depends:    base >= 4.15 && < 5
                     , blaze-svg >= 0.3.6
                     , random >= 1.1
                     , blaze-markup
@@ -105,30 +128,6 @@ test-suite tests
                     , text-show >= 3.8
                     , text >= 1.2
                     , HUnit >= 1.6
-  ghc-options:      -Wall -fwarn-incomplete-patterns
-  default-language: Haskell2010
-
-library
-  hs-source-dirs:   src
-  exposed-modules:  Art.ContextFree.Definite
-                    , Art.ContextFree.Probabilistic
-  other-modules:    Art.ContextFree.Geometry
-                    , Art.ContextFree.Definite.Grammar
-                    , Art.ContextFree.Definite.Builder
-                    , Art.ContextFree.Probabilistic.Grammar
-                    , Art.ContextFree.Definite.Render
-                    , Art.ContextFree.Modifier
-                    , Art.ContextFree.Probabilistic.Render
-                    , Art.ContextFree.Util
-  build-depends:    base >= 4.12 && < 5
-                    , blaze-svg >= 0.3.6
-                    , dlist >= 1.0 && < 2
-                    , mtl >= 2.2 && < 3
-                    , random >= 1.1
-                    , blaze-markup
-                    , bifunctors >= 5.5
-                    , semigroupoids >= 5.3 && < 5.4
-                    , text-show >= 3.8
-                    , text >= 1.2
+                    -- , context-free-art
   ghc-options:      -Wall -fwarn-incomplete-patterns
   default-language: Haskell2010
