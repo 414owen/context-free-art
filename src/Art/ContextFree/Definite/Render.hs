@@ -14,15 +14,18 @@ import Data.IntMap.Strict (IntMap)
 import qualified Data.IntMap as M
 import Data.IntSet (IntSet)
 import qualified Data.IntSet as IS
+import Data.Maybe
 import Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.List.NonEmpty as NE
 import Linear.Matrix
 import Linear.V3
 import Text.Blaze
+import Text.Blaze.Internal
 import qualified Text.Blaze.Svg11 as S
 import qualified Text.Blaze.Svg11.Attributes as A
 
 import Art.ContextFree.Geometry
+import Art.ContextFree.Definite.Builder (SymBuilder, runSymBuilder')
 import Art.ContextFree.Definite.Grammar
 import Art.ContextFree.Modifier
 
@@ -296,14 +299,47 @@ type Id = Int
 
 type RenderM = RWS () S.Svg IntSet
 
+toSingleEl :: NonEmpty S.Svg -> S.Svg
+toSingleEl (x :| []) = x
+toSingleEl xs = S.g $ fold xs
+
+modifierAttrs :: [Modifier] -> [Attribute]
+modifierAttrs ms = cols <> transforms
+  -- A.transform . toValue . unwords . catMaybes . fmap f
+  where
+    toCol :: Modifier -> Maybe Attribute
+    toCol m = case m of
+      Color s -> Just $ A.fill $ toValue s
+      _ -> Nothing
+
+    cols :: [Attribute]
+    cols = case reverse $ catMaybes $ toCol <$> ms of
+      (x : _) -> [x]
+      [] -> []
+
+    transforms :: [Attribute]
+    transforms = case catMaybes $ toTransform <$> ms of
+      [] -> []
+      xs -> [A.transform $ toValue $ unwords xs]
+  
+    toTransform :: Modifier -> Maybe String
+    toTransform m = case m of
+      Scale n -> Just $ "scale(" <> show n <> ")"
+      Move (x, y) -> Just $ "translate(" <> show x <> " " <> show y <> ")"
+      Rotate r -> Just $ "rotate(" <> show r <> ")"
+      _ -> Nothing
+
+applyAttrs :: Attributable h => h -> [Attribute] -> h
+applyAttrs = foldl' (!)
+
 -- | Create a drawing from a grammar.
 --   In order to get a string representation, you'll need to use one of
 --   blaze-svg's render functions, for example 'renderSvg'.
-render :: Image -> S.Svg
-render (soup, ref) = undefined
+render' :: Image -> S.Svg
+render' (soup, root) = finalise els
   where
     allRefs :: [SymRef]
-    allRefs = DL.toList $ collectRefs soup ref
+    allRefs = DL.toList $ collectRefs soup root
 
     useCounts :: IntMap Int
     useCounts = foldl countUnion M.empty $ toSingleCount . unSymRef <$> allRefs
@@ -312,9 +348,13 @@ render (soup, ref) = undefined
     reusedRefs = M.fromList $ (`zip` [0..]) $ fmap fst $ filter ((> 1) . snd) $ M.assocs useCounts
 
     bounds :: Bound
-    bounds = getBounds soup ref
+    bounds = getBounds soup root
 
-    finalise :: DList S.Svg -> S.Svg
+    els :: NonEmpty S.Svg
+    els = let (e :| es, w) = evalRWS (renderEl root) () mempty in
+      e :| (S.defs w : es)
+
+    finalise :: Foldable t => t S.Svg -> S.Svg
     finalise els = toSVG (boundsToViewBox bounds) $ fold els
 
     toId :: SymRef -> String
@@ -323,18 +363,33 @@ render (soup, ref) = undefined
     toLink :: SymRef -> Attribute
     toLink ref = A.xlinkHref $ toValue $ "url(#" <> toId ref <> ")"
 
-    renderEl :: SymRef -> RenderM S.Svg
+    renderEl :: SymRef -> RenderM (NonEmpty S.Svg)
     renderEl ref = do
       let sym = getSym' ref soup
       s <- get
       modify $ IS.insert $ unSymRef ref
       if not $ IS.member (unSymRef ref) s
-      then pure $ S.use ! toLink ref
+      then pure $ pure $ S.use ! toLink ref
       else case sym of
-        Branch xs -> fold <$> traverse renderEl xs
-        Circle r -> pure $ S.circle S.! A.r (toValue r)
+        Branch xs -> fmap fold <$> traverse renderEl xs
+        Circle r -> pure $ pure $ S.circle S.! A.r (toValue r)
         Poly p (p' :| ps) ->
-          pure $ S.path ! A.d (toValue $ unwords $ ("l" <>) . show <$> p : p' : ps)
+          pure $ pure $ S.path ! A.d (toValue $ unwords $ ("l" <>) . show <$> p : p' : ps)
         Bite { parent, bite } -> do
-          tell $ S.mask ! A.id (toValue $ toId ref)
-        Mod ms sub -> undefined
+          parentEl <- toSingleEl <$> renderEl parent
+          biteEls <- renderEl bite
+          tell $ S.mask ! A.id_ (toValue $ toId ref) $ fold biteEls
+          pure $ pure $ parentEl ! toLink bite
+        Mod ms sub -> do
+          subs <- renderEl sub
+          pure $ pure $ applyAttrs (toSingleEl subs) $ modifierAttrs ms
+
+class Renderable a where
+  render :: a -> S.Svg
+
+instance Renderable Image where
+  render = render'
+
+instance Renderable (SymBuilder SymRef) where
+  render b = let (_, root, soup) = runSymBuilder' b in
+    render (soup, root)

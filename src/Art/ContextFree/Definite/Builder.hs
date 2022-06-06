@@ -64,23 +64,21 @@ type SymRes a = (a, NonEmpty SymRef, SymSoup)
 type SymRes' a = (a, SymRef, SymSoup)
 
 -- | Run a Monadic symbol writer
-runSymBuilder :: SymSoup -> SymBuilder a -> SymRes a
-runSymBuilder state sb = let (val, state', log) = runRWS (unSymBuilder sb) () state
-  in (val, NE.fromList $ DL.toList $ log, state')
+runSymBuilder :: SymBuilder a -> SymRes a
+runSymBuilder sb = let (val, state', log') = runRWS (unSymBuilder sb) () mempty
+  in (val, NE.fromList $ DL.toList log', state')
 
 addToSoup :: SymSoup -> Symbol SymRef -> (SymSoup, SymRef)
 addToSoup state sym = let nk = safeNextKey state in (M.insert nk sym state, SymRef nk)
 
-runSymBuilder' :: SymSoup -> SymBuilder a -> SymRes' a
-runSymBuilder' state sb = case runSymBuilder state sb of
+runSymBuilder' :: SymBuilder a -> SymRes' a
+runSymBuilder' sb = case runSymBuilder sb of
   (val, els, state') -> case els of
     x :| [] -> (val, x, state')
     xs -> let (state'', key) = addToSoup state' (Branch xs) in (val, key, state'')
 
 safeNextKey :: IntMap v -> Int
-safeNextKey m = case M.null m of
-  True -> 0
-  False -> fst (M.findMax m) + 1
+safeNextKey m = if M.null m then 0 else fst (M.findMax m) + 1
 
 addAtomic :: Symbol SymRef -> SymBuilder SymRef
 addAtomic sym = SymBuilder $ do
