@@ -1,7 +1,6 @@
 # Context free art
 
 Create art via context free grammar production rules.
-Current backends: SVG.
 
 ## Context free grammar primer
 
@@ -34,14 +33,15 @@ spiral = Branch $
   Circle 1 :| [arm, Mod [Rotate 120] arm, Mod [Rotate 240] arm]
 ```
 
-The latter produces this graphic:
+This code produces this image:
 
-![spiral.svg](https://owen.cafe/res/context-free/spiral.svg)
+<img src="https://raw.githubusercontent.com/414owen/context-free-art/master/examples/spiral.svg" width="300" alt="spiral.svg">
 
 ## Examples
 
 The code for these can be found in the [exmaples/](https://github.com/414owen/context-free-art/tree/master/examples) folder
-
-![circles.svg](https://owen.cafe/res/context-free/circles.svg)
-![sierpinski-triangle.svg](https://owen.cafe/res/context-free/sierpinski-triangle.svg)
-![sierpinski-carpet.svg](https://owen.cafe/res/context-free/sierpinski-carpet.svg)
+<p align="center">
+<img src="https://raw.githubusercontent.com/414owen/context-free-art/master/examples/circles.svg" width="300" alt="circles.svg">
+<img src="https://raw.githubusercontent.com/414owen/context-free-art/master/examples/Sierpinski/triangle.svg" width="300" alt="sierpinskis-triangle.svg">
+<img src="https://raw.githubusercontent.com/414owen/context-free-art/master/examples/Sierpinski/carpet.svg" width="300" alt="sierpinskis-carpet.svg">
+</p>
